@@ -182,24 +182,13 @@ input.highlight{border-color:var(--info-border);background:var(--info-bg);}
 .plan-tab-btn.active .ptb-badge{background:rgba(255,255,255,0.25);color:var(--bg);}
 .plan-sub-section{display:none;}
 /* API key banner */
-.apikey-banner{background:var(--warn-bg);border:1px solid var(--warn-border);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
-.apikey-banner.ok{background:var(--success-bg);border-color:var(--success-border);}
-.apikey-input{flex:1;min-width:200px;font-family:monospace;font-size:12px;height:36px;}
+
 </style>
 </head>
 <body>
 <div class="app">
 
-<!-- BANNER CHAVE API -->
-<div id="apiBanner" class="apikey-banner">
-  <div style="font-size:18px;">🔑</div>
-  <div style="flex:1;min-width:0;">
-    <div style="font-size:13px;font-weight:500;color:#b45309;margin-bottom:4px;">Chave da API necessária para importar relatórios</div>
-    <div style="font-size:12px;color:#666;">Obtenha em <strong>console.anthropic.com</strong> → API Keys</div>
-  </div>
-  <input id="apiKeyInput" class="apikey-input" type="password" placeholder="sk-ant-..."/>
-  <button class="btn primary" onclick="saveApiKey()">Salvar</button>
-</div>
+
 
 <div id="view-list">
   <div class="topbar"><h1>Clientes</h1><button class="btn primary" onclick="showForm()">+ Novo cliente</button></div>
@@ -504,7 +493,7 @@ input.highlight{border-color:var(--info-border);background:var(--info-bg);}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 // URL do proxy — quando rodando no Vercel, usa /api/proxy relativo
-const PROXY_URL = null; // chamada direta à API
+const PROXY_URL = '/api/proxy';
 
 const OBJETIVOS_PADRAO=['Aposentadoria','Independência financeira','Compra de imóvel','Reserva de emergência','Educação dos filhos','Viagem','Troca de carro','Abrir negócio'];
 const COLORS=['#378ADD','#1D9E75','#EF9F27','#D85A30','#7F77DD','#888780'];
@@ -514,7 +503,7 @@ const CAT_ICONS={viagem:'✈',imovel:'🏠',veiculo:'🚗',liquidez:'💧',educa
 let clients=[],currentId=null,editingId=null,editingAssetId=null,selectedObjs=[],importedData=null;
 let projChartObj=null,rentChartObj=null,aporteChartObj=null,bmChartObj=null,prjChartObj=null;
 let editingRentId=null,editingAporteId=null,bmEditingClasseId=null,editingProjId=null,activeProjSubId='principal';
-let apiKey='';
+
 
 function g(id){return document.getElementById(id);}
 function initials(n){return n.trim().split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();}
@@ -528,20 +517,7 @@ function showView(n){['list','form','dash'].forEach(v=>g('view-'+v).style.displa
 function backToList(){currentId=null;showView('list');renderList();}
 function atualizaHint(){const r=Number(g('pfRenda').value)||0;const d=Number(g('pfDespesa').value)||0;const s=r-d;const el=g('hint-val');el.textContent=s>=0?fmtBRL(s)+'/mês':'negativo';el.style.color=s>0?'#1565c0':'#c62828';}
 
-// API KEY
-function saveApiKey(){
-  const val=g('apiKeyInput').value.trim();
-  if(!val.startsWith('sk-ant-')){showToast('Chave inválida — deve começar com sk-ant-');return;}
-  apiKey=val;try{localStorage.setItem('fp_apikey',val);}catch(e){}
-  const b=g('apiBanner');b.className='apikey-banner ok';
-  b.innerHTML=`<div style="font-size:18px;">✓</div><div style="flex:1;"><div style="font-size:13px;font-weight:500;color:#2e7d32;">Chave da API configurada</div><div style="font-size:12px;color:#666;">Importação de relatórios ativa</div></div><button class="btn sm" onclick="clearApiKey()">Remover</button>`;
-  showToast('Chave salva!');
-}
-function clearApiKey(){
-  apiKey='';try{localStorage.removeItem('fp_apikey');}catch(e){}
-  const b=g('apiBanner');b.className='apikey-banner';
-  b.innerHTML=`<div style="font-size:18px;">🔑</div><div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;color:#b45309;margin-bottom:4px;">Chave da API necessária para importar relatórios</div><div style="font-size:12px;color:#666;">Obtenha em <strong>console.anthropic.com</strong> → API Keys</div></div><input id="apiKeyInput" class="apikey-input" type="password" placeholder="sk-ant-..."/><button class="btn primary" onclick="saveApiKey()">Salvar</button>`;
-}
+// API KEY gerenciada pelo servidor
 
 // IMPORT via proxy
 const PROMPT_JSON=`Analise este relatório financeiro e retorne APENAS um JSON válido, sem texto adicional:
@@ -549,14 +525,12 @@ const PROMPT_JSON=`Analise este relatório financeiro e retorne APENAS um JSON v
 Tipos: RF=renda fixa/CDB/LCI/LCA/tesouro, RV=ações/ETF, FII=fundos imobiliários, Previdência=PGBL/VGBL, Crypto=cripto, Outro=demais.`;
 
 function toggleImport(){
-  if(!apiKey){showToast('Configure a chave da API (topo da página)');return;}
   const w=g('importWrap');w.style.display=w.style.display==='none'?'':'none';
 }
 function handleDrop(e){e.preventDefault();g('dropZone').classList.remove('dragover');const f=e.dataTransfer.files[0];if(f)handleFile(f);}
 
 async function handleFile(file){
   if(!file)return;
-  if(!apiKey){showToast('Configure a chave da API primeiro.');return;}
   const ext=file.name.split('.').pop().toLowerCase();
   const status=g('importStatus');
   g('importPreview').style.display='none';
@@ -577,17 +551,12 @@ async function handleFile(file){
       payload={model:'claude-haiku-4-5-20251001',max_tokens:2000,messages:[{role:'user',content:`${PROMPT_JSON}\n\nArquivo:\n${text.slice(0,12000)}`}]};
     }
     // chama via proxy (sem restrição de CORS)
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
+    const res=await fetch(PROXY_URL,{
       method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'anthropic-version':'2023-06-01',
-        'anthropic-dangerous-direct-browser-access':'true',
-        'x-api-key':apiKey
-      },
+      headers:{'Content-Type':'application/json'},
       body:JSON.stringify(payload)
     });
-    if(!res.ok){const t=await res.text();throw new Error(`API ${res.status}: ${t.slice(0,300)}`);}
+    if(!res.ok){const t=await res.text();throw new Error(`Proxy ${res.status}: ${t.slice(0,300)}`);}
     const data=await res.json();
     const raw=data.content?.[0]?.text||'';
     if(!raw){status.innerHTML='Nenhum dado retornado.';return;}
@@ -601,20 +570,15 @@ async function handleFile(file){
 function parseJSON(raw){const c=raw.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();try{return JSON.parse(c);}catch(e){const m=c.match(/\{[\s\S]*\}/);if(m)return JSON.parse(m[0]);throw new Error('Não foi possível interpretar o retorno.');}}
 function renderImportPreview(raw){let p;try{p=parseJSON(raw);}catch(e){showToast('Erro: '+e.message);return;}importedData=p;const ativos=p.ativos||[];const pat=p.patrimonio_total||ativos.reduce((s,a)=>s+(a.valor||0),0);const rent=p.rentabilidade_periodo;g('importSummaryBox').innerHTML=`<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;"><div class="metric" style="flex:1;min-width:100px;"><div class="metric-label">Patrimônio</div><div class="metric-value" style="font-size:16px;">${fmtM(pat)}</div></div>${rent?`<div class="metric" style="flex:1;min-width:100px;"><div class="metric-label">Rentabilidade</div><div class="metric-value" style="font-size:16px;">${Number(rent).toFixed(2)}%</div></div>`:''}<div class="metric" style="flex:1;min-width:100px;"><div class="metric-label">Ativos</div><div class="metric-value" style="font-size:16px;">${ativos.length}</div></div></div>`;g('importItems').innerHTML=ativos.map((a,i)=>`<div class="import-item"><div class="import-check">✓</div><div style="flex:1;font-weight:500;">${a.nome||'Ativo '+(i+1)}</div><span class="tipo-badge tipo-${a.tipo||'Outro'}">${a.tipo||'Outro'}</span>${a.instituicao?`<span style="font-size:12px;color:#666;">${a.instituicao}</span>`:''}<div style="font-weight:500;">${fmtBRL(a.valor||0)}</div></div>`).join('');g('importPreview').style.display='';}
 async function confirmImport(){if(!importedData)return;const c=clients.find(x=>x.id===currentId);if(!c)return;const novosAtivos=importedData.ativos||[];
-let adicionados=0,atualizados=0;
-novosAtivos.forEach(a=>{
-  const nomeNorm=(a.nome||'').toLowerCase().trim();
-  const institNorm=(a.instituicao||'').toLowerCase().trim();
-  const existente=c.ativos.find(x=>x.nome.toLowerCase().trim()===nomeNorm&&x.instit.toLowerCase().trim()===institNorm);
-  if(existente){
-    existente.valor=Number(a.valor)||0;
-    existente.tipo=a.tipo||existente.tipo;
-    atualizados++;
-  }else{
-    c.ativos.push({id:Date.now().toString()+Math.random(),nome:a.nome||'Ativo',tipo:a.tipo||'Outro',valor:Number(a.valor)||0,instit:a.instituicao||'',obs:''});
-    adicionados++;
-  }
-});;const rent=importedData.rentabilidade_periodo;if(rent){if(!c.rents)c.rents=[];const now=new Date();const mes=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');c.rents.push({id:Date.now().toString(),mes,rent:Number(rent),pat:importedData.patrimonio_total||0,obs:'Importado'});}await persist();const total=c.ativos.reduce((s,a)=>s+a.valor,0);g('dPatrimonio').textContent=fmtBRL(total);g('dNAtivos').textContent=c.ativos.length;renderPie(c.ativos);renderAssetTable(c.ativos);renderRentTable(c);renderProgress(c);g('importWrap').style.display='none';cancelImport()showToast(`${adicionados} adicionados, ${atualizados} atualizados!`);}
+  let adicionados=0,atualizados=0;
+  if(!c.ativos)c.ativos=[];
+  novosAtivos.forEach(a=>{
+    const nomeNorm=(a.nome||'').toLowerCase().trim();
+    const institNorm=(a.instituicao||'').toLowerCase().trim();
+    const existente=c.ativos.find(x=>x.nome.toLowerCase().trim()===nomeNorm&&x.instit.toLowerCase().trim()===institNorm);
+    if(existente){existente.valor=Number(a.valor)||0;existente.tipo=a.tipo||existente.tipo;atualizados++;}
+    else{c.ativos.push({id:Date.now().toString()+Math.random(),nome:a.nome||'Ativo',tipo:a.tipo||'Outro',valor:Number(a.valor)||0,instit:a.instituicao||'',obs:''});adicionados++;}
+  });const rent=importedData.rentabilidade_periodo;if(rent){if(!c.rents)c.rents=[];const now=new Date();const mes=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');c.rents.push({id:Date.now().toString(),mes,rent:Number(rent),pat:importedData.patrimonio_total||0,obs:'Importado'});}await persist();const total=c.ativos.reduce((s,a)=>s+a.valor,0);g('dPatrimonio').textContent=fmtBRL(total);g('dNAtivos').textContent=c.ativos.length;renderPie(c.ativos);renderAssetTable(c.ativos);renderRentTable(c);renderProgress(c);g('importWrap').style.display='none';cancelImport();showToast(`${adicionados} adicionados, ${atualizados} atualizados!`);}
 function cancelImport(){importedData=null;g('importPreview').style.display='none';g('importStatus').style.display='none';}
 
 // CLIENTES
@@ -683,7 +647,7 @@ async function deleteAsset(id){const c=clients.find(x=>x.id===currentId);c.ativo
 function switchDashTab(tab){const tabs=['visao','ativos','planejamento','benchmark','rentabilidade','aportes'];document.querySelectorAll('.dash-tab').forEach((el,i)=>el.classList.toggle('active',tabs[i]===tab));document.querySelectorAll('.dash-section').forEach(s=>s.classList.remove('active'));g('dt-'+tab).classList.add('active');if(tab==='benchmark')bmRender();if(tab==='planejamento')renderPlanTabs(activeProjSubId||'principal');}
 function renderList(){const total=clients.length;const ativos=clients.filter(c=>c.status==='ativo').length;g('mTotal').textContent=total;g('mAtivos').textContent=ativos;g('mInativos').textContent=total-ativos;const grid=g('clientGrid');if(!total){grid.innerHTML='<div class="empty">Nenhum cliente ainda.<br>Clique em <strong>+ Novo cliente</strong> para começar.</div>';return;}grid.innerHTML=clients.map(c=>{const totalAt=(c.ativos||[]).reduce((s,a)=>s+Number(a.valor||0),0);const nAt=(c.ativos||[]).length;return`<div class="client-card" onclick="openDash('${c.id}')"><div class="avatar">${initials(c.nome)}</div><div class="client-info"><div class="client-name">${c.nome}</div><div class="client-sub">${nAt} ativo${nAt!==1?'s':''} · ${totalAt>0?fmtBRL(totalAt):'sem patrimônio'}</div></div><span class="badge ${c.status||'ativo'}">${c.status||'ativo'}</span><span style="font-size:16px;color:#999;">›</span></div>`;}).join('');}
 function persist(){try{localStorage.setItem('clients_v1',JSON.stringify(clients));}catch(e){}}
-function loadData(){try{const k=localStorage.getItem('fp_apikey');if(k&&k.startsWith('sk-ant-')){apiKey=k;const b=g('apiBanner');b.className='apikey-banner ok';b.innerHTML=`<div style="font-size:18px;">✓</div><div style="flex:1;"><div style="font-size:13px;font-weight:500;color:#2e7d32;">Chave da API configurada</div><div style="font-size:12px;color:#666;">Importação ativa</div></div><button class="btn sm" onclick="clearApiKey()">Remover</button>`;}}catch(e){}try{const r=localStorage.getItem('clients_v1');if(r)clients=JSON.parse(r);}catch(e){clients=[];}clients.forEach(c=>{if(!c.ativos)c.ativos=[];if(!c.objetivos)c.objetivos=[];if(!c.pf)c.pf={};if(!c.rents)c.rents=[];if(!c.aportes)c.aportes=[];if(!c.benchmark)c.benchmark={classes:[],periodos:[],periodoSel:null};if(!c.projetos)c.projetos=[];});renderList();}
+function loadData(){try{const _unused=null;}catch(e){}try{const r=localStorage.getItem('clients_v1');if(r)clients=JSON.parse(r);}catch(e){clients=[];}clients.forEach(c=>{if(!c.ativos)c.ativos=[];if(!c.objetivos)c.objetivos=[];if(!c.pf)c.pf={};if(!c.rents)c.rents=[];if(!c.aportes)c.aportes=[];if(!c.benchmark)c.benchmark={classes:[],periodos:[],periodoSel:null};if(!c.projetos)c.projetos=[];});renderList();}
 loadData();
 </script>
 </body>
