@@ -191,7 +191,13 @@ input.highlight{border-color:var(--info-border);background:var(--info-bg);}
 
 
 <div id="view-list">
-  <div class="topbar"><h1>Clientes</h1><button class="btn primary" onclick="showForm()">+ Novo cliente</button></div>
+  <div class="topbar">
+    <h1>Clientes</h1>
+    <button class="btn" onclick="importarDados()" title="Importar backup">⬆ Importar</button>
+    <button class="btn" onclick="exportarDados()" title="Exportar backup">⬇ Exportar</button>
+    <button class="btn primary" onclick="showForm()">+ Novo cliente</button>
+  </div>
+  <input type="file" id="importJsonInput" accept=".json" style="display:none" onchange="handleImportJson(this)"/>
   <div class="metrics" style="grid-template-columns:repeat(3,1fr);">
     <div class="metric"><div class="metric-label">Total</div><div class="metric-value" id="mTotal">0</div></div>
     <div class="metric"><div class="metric-label">Ativos</div><div class="metric-value" id="mAtivos">0</div></div>
@@ -766,6 +772,53 @@ async function deleteAsset(id){const c=clients.find(x=>x.id===currentId);c.ativo
 function switchDashTab(tab){const tabs=['visao','ativos','planejamento','benchmark','rentabilidade','aportes'];document.querySelectorAll('.dash-tab').forEach((el,i)=>el.classList.toggle('active',tabs[i]===tab));document.querySelectorAll('.dash-section').forEach(s=>s.classList.remove('active'));g('dt-'+tab).classList.add('active');if(tab==='benchmark')bmRender();if(tab==='planejamento')renderPlanTabs(activeProjSubId||'principal');}
 function renderList(){const total=clients.length;const ativos=clients.filter(c=>c.status==='ativo').length;g('mTotal').textContent=total;g('mAtivos').textContent=ativos;g('mInativos').textContent=total-ativos;const grid=g('clientGrid');if(!total){grid.innerHTML='<div class="empty">Nenhum cliente ainda.<br>Clique em <strong>+ Novo cliente</strong> para começar.</div>';return;}grid.innerHTML=clients.map(c=>{const totalAt=(c.ativos||[]).reduce((s,a)=>s+Number(a.valor||0),0);const nAt=(c.ativos||[]).length;return`<div class="client-card" onclick="openDash('${c.id}')"><div class="avatar">${initials(c.nome)}</div><div class="client-info"><div class="client-name">${c.nome}</div><div class="client-sub">${nAt} ativo${nAt!==1?'s':''} · ${totalAt>0?fmtBRL(totalAt):'sem patrimônio'}</div></div><span class="badge ${c.status||'ativo'}">${c.status||'ativo'}</span><span style="font-size:16px;color:#999;">›</span></div>`;}).join('');}
 function persist(){try{localStorage.setItem('clients_v1',JSON.stringify(clients));}catch(e){}}
+
+function exportarDados(){
+  if(!clients.length){showToast('Nenhum dado para exportar.');return;}
+  const dados={versao:'1.0',exportado:new Date().toISOString(),clientes:clients};
+  const blob=new Blob([JSON.stringify(dados,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  const data=new Date().toLocaleDateString('pt-BR').replace(/\//g,'-');
+  a.download=`planejador-backup-${data}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Backup exportado!');
+}
+
+function importarDados(){
+  g('importJsonInput').click();
+}
+
+function handleImportJson(input){
+  const file=input.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const dados=JSON.parse(e.target.result);
+      const lista=dados.clientes||dados;
+      if(!Array.isArray(lista)){showToast('Arquivo inválido.');return;}
+      if(!confirm(`Importar ${lista.length} cliente(s)? Os dados atuais serão substituídos.`))return;
+      clients=lista;
+      clients.forEach(c=>{
+        if(!c.ativos)c.ativos=[];if(!c.objetivos)c.objetivos=[];
+        if(!c.pf)c.pf={};if(!c.rents)c.rents=[];
+        if(!c.aportes)c.aportes=[];
+        if(!c.benchmark)c.benchmark={classes:[],periodos:[],periodoSel:null};
+        if(!c.projetos)c.projetos=[];
+      });
+      persist();
+      renderList();
+      showToast(`${lista.length} cliente(s) importados!`);
+    }catch(err){
+      showToast('Erro ao ler o arquivo: '+err.message);
+    }
+    input.value='';
+  };
+  reader.readAsText(file);
+}
 function loadData(){try{const _unused=null;}catch(e){}try{const r=localStorage.getItem('clients_v1');if(r)clients=JSON.parse(r);}catch(e){clients=[];}clients.forEach(c=>{if(!c.ativos)c.ativos=[];if(!c.objetivos)c.objetivos=[];if(!c.pf)c.pf={};if(!c.rents)c.rents=[];if(!c.aportes)c.aportes=[];if(!c.benchmark)c.benchmark={classes:[],periodos:[],periodoSel:null};if(!c.projetos)c.projetos=[];});renderList();}
 loadData();
 </script>
