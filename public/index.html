@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Planejador Financeiro</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#ffffff;--bg2:#f5f5f5;--bg3:#ebebeb;
+  --text:#111111;--text2:#666666;--text3:#999999;
+  --border:#e0e0e0;--border2:#cccccc;
+  --success-bg:#e8f5e9;--success-text:#2e7d32;--success-border:#a5d6a7;
+  --warn-bg:#fff8e1;--warn-text:#e65100;--warn-border:#ffcc80;
+  --danger-bg:#ffebee;--danger-text:#c62828;--danger-border:#ef9a9a;
+  --info-bg:#e3f2fd;--info-text:#1565c0;--info-border:#90caf9;
+  --radius:8px;--radius-sm:5px;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#1a1a1a;--bg2:#252525;--bg3:#303030;
+  --text:#f0f0f0;--text2:#aaaaaa;--text3:#777777;
+  --border:#3a3a3a;--border2:#555555;
+}}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;}
+.app{max-width:860px;margin:0 auto;padding:1.5rem 1rem;}
+.btn{height:34px;padding:0 14px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:transparent;color:var(--text);font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;transition:all .15s;}
+.btn:hover{background:var(--bg2);}
+.btn.primary{background:var(--text);color:var(--bg);border-color:var(--text);}
+.btn.primary:hover{opacity:.85;}
+.btn.ghost{border-color:transparent;color:var(--text2);}
+.btn.ghost:hover{background:var(--bg2);color:var(--text);}
+.btn.danger{color:var(--danger-text);border-color:var(--danger-border);}
+.btn.danger:hover{background:var(--danger-bg);}
+.btn.accent{background:var(--info-bg);color:var(--info-text);border-color:var(--info-border);}
+.btn.sm{height:28px;padding:0 10px;font-size:12px;}
+.card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1rem;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.form-row.full{grid-template-columns:1fr;}
+.form-row.three{grid-template-columns:1fr 1fr 1fr;}
+.form-group{display:flex;flex-direction:column;gap:4px;}
+label{font-size:12px;color:var(--text2);font-weight:500;}
+input,select,textarea{padding:0 10px;font-size:14px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg2);color:var(--text);font-family:inherit;width:100%;}
+input,select{height:36px;}
+textarea{height:64px;padding:8px 10px;resize:vertical;}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--text2);}
+input.highlight{border-color:var(--info-border);background:var(--info-bg);}
+.form-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:4px;}
+.topbar{display:flex;align-items:center;gap:10px;margin-bottom:1.5rem;}
+.topbar h1{font-size:18px;font-weight:500;flex:1;}
+.metrics{display:grid;gap:10px;margin-bottom:1.25rem;}
+.metric{background:var(--bg2);border-radius:var(--radius-sm);padding:.875rem 1rem;}
+.metric-label{font-size:11px;color:var(--text2);margin-bottom:4px;}
+.metric-value{font-size:18px;font-weight:500;}
+.metric-sub{font-size:11px;color:var(--text2);margin-top:2px;}
+.client-grid{display:flex;flex-direction:column;gap:8px;}
+.client-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:.875rem 1.25rem;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all .15s;}
+.client-card:hover{border-color:var(--border2);background:var(--bg2);}
+.avatar{width:40px;height:40px;border-radius:50%;background:var(--info-bg);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;color:var(--info-text);flex-shrink:0;}
+.client-info{flex:1;min-width:0;}
+.client-name{font-size:14px;font-weight:500;}
+.client-sub{font-size:12px;color:var(--text2);margin-top:2px;}
+.badge{display:inline-block;font-size:11px;font-weight:500;padding:2px 8px;border-radius:var(--radius-sm);}
+.badge.ativo{background:var(--success-bg);color:var(--success-text);}
+.badge.inativo{background:var(--bg2);color:var(--text2);}
+.badge.pace-ok{background:var(--success-bg);color:var(--success-text);}
+.badge.pace-warn{background:var(--warn-bg);color:var(--warn-text);}
+.empty{text-align:center;padding:2.5rem;color:var(--text2);}
+.dash-header{display:flex;align-items:center;gap:12px;margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:1px solid var(--border);}
+.dash-avatar{width:44px;height:44px;border-radius:50%;background:var(--info-bg);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:500;color:var(--info-text);flex-shrink:0;}
+.dash-name{font-size:17px;font-weight:500;}
+.dash-sub{font-size:12px;color:var(--text2);margin-top:2px;}
+.dash-tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:1.25rem;overflow-x:auto;gap:0;}
+.dash-tab{padding:8px 14px;font-size:13px;font-weight:500;color:var(--text2);cursor:pointer;border:none;background:transparent;border-bottom:2px solid transparent;margin-bottom:-1px;font-family:inherit;transition:all .15s;white-space:nowrap;}
+.dash-tab.active{color:var(--text);border-bottom-color:var(--text);}
+.dash-section{display:none;}
+.dash-section.active{display:block;}
+.asset-table{width:100%;border-collapse:collapse;font-size:13px;}
+.asset-table th{text-align:left;font-size:11px;font-weight:500;color:var(--text2);padding:6px 8px;border-bottom:1px solid var(--border);}
+.asset-table td{padding:8px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.asset-table tr:last-child td{border-bottom:none;}
+.asset-table td.num,.asset-table th.num{text-align:right;font-variant-numeric:tabular-nums;}
+.tipo-badge{display:inline-block;font-size:11px;font-weight:500;padding:2px 7px;border-radius:var(--radius-sm);}
+.tipo-RF{background:var(--info-bg);color:var(--info-text);}
+.tipo-RV{background:var(--warn-bg);color:var(--warn-text);}
+.tipo-FII{background:var(--success-bg);color:var(--success-text);}
+.tipo-Crypto{background:var(--danger-bg);color:var(--danger-text);}
+.tipo-Previdência,.tipo-Outro{background:var(--bg2);color:var(--text2);}
+.pie-wrap{display:flex;align-items:center;gap:24px;}
+.legend{display:flex;flex-direction:column;gap:6px;flex:1;}
+.legend-item{display:flex;align-items:center;gap:8px;font-size:12px;}
+.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.legend-pct{margin-left:auto;color:var(--text2);}
+.section-label{font-size:12px;font-weight:500;color:var(--text2);margin-bottom:10px;}
+.total-row td{font-weight:500;border-top:1px solid var(--border2)!important;border-bottom:none!important;}
+.toast{position:fixed;bottom:16px;right:16px;background:var(--text);color:var(--bg);padding:10px 16px;border-radius:var(--radius-sm);font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:999;}
+.toast.show{opacity:1;}
+.obj-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.obj-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:99px;border:1px solid var(--border2);font-size:12px;font-weight:500;cursor:pointer;color:var(--text2);background:transparent;font-family:inherit;transition:all .15s;user-select:none;}
+.obj-chip:hover{color:var(--text);}
+.obj-chip.selected{background:var(--text);color:var(--bg);border-color:var(--text);}
+.obj-chip .check{font-size:11px;display:none;}
+.obj-chip.selected .check{display:inline;}
+.obj-tags{display:flex;flex-wrap:wrap;gap:4px;}
+.obj-tag{display:inline-block;font-size:11px;font-weight:500;padding:2px 8px;border-radius:var(--radius-sm);background:var(--bg2);color:var(--text2);}
+.pf-title{font-size:14px;font-weight:500;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.pf-section{margin-bottom:1.5rem;}
+.diag-card{border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1rem;}
+.diag-ok{background:var(--success-bg);border:1px solid var(--success-border);}
+.diag-warn{background:var(--warn-bg);border:1px solid var(--warn-border);}
+.diag-bad{background:var(--danger-bg);border:1px solid var(--danger-border);}
+.diag-title{font-size:14px;font-weight:500;margin-bottom:4px;}
+.diag-ok .diag-title{color:var(--success-text);}
+.diag-warn .diag-title{color:var(--warn-text);}
+.diag-bad .diag-title{color:var(--danger-text);}
+.diag-text{font-size:13px;color:var(--text2);line-height:1.6;}
+.step-row{display:flex;gap:12px;margin-bottom:10px;}
+.step-num{width:22px;height:22px;border-radius:50%;background:var(--text);color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0;}
+.step-text{font-size:13px;font-weight:500;}
+.step-sub{font-size:12px;color:var(--text2);line-height:1.6;margin-top:2px;}
+.prog-track{height:10px;background:var(--bg2);border-radius:5px;overflow:hidden;margin:6px 0;}
+.prog-fill{height:10px;border-radius:5px;transition:width .6s;}
+.prog-ok{background:#1D9E75;}.prog-warn{background:#EF9F27;}.prog-bad{background:#D85A30;}
+.prog-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--text2);}
+.pace-banner{border-radius:var(--radius-sm);padding:.75rem 1rem;margin-top:10px;display:flex;align-items:center;gap:10px;}
+.pace-ok{background:var(--success-bg);}
+.pace-warn{background:var(--warn-bg);}
+.pace-text{font-size:13px;font-weight:500;}
+.pace-ok .pace-text{color:var(--success-text);}
+.pace-warn .pace-text{color:var(--warn-text);}
+.pace-sub{font-size:12px;color:var(--text2);margin-top:2px;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+.aporte-hint{font-size:11px;color:var(--text2);margin-top:4px;padding:6px 8px;background:var(--bg2);border-radius:var(--radius-sm);}
+.formula-box{font-size:11px;color:var(--text2);background:var(--bg2);border-radius:var(--radius-sm);padding:5px 8px;margin-top:4px;}
+.pbar-wrap{height:8px;background:var(--bg2);border-radius:4px;margin:8px 0;}
+.pbar{height:8px;border-radius:4px;}
+.bar-ok{background:#1D9E75;}.bar-warn{background:#EF9F27;}.bar-bad{background:#D85A30;}
+.reg-table{width:100%;border-collapse:collapse;font-size:13px;}
+.reg-table th{font-size:11px;font-weight:500;color:var(--text2);padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;}
+.reg-table th.num{text-align:right;}
+.reg-table td{padding:8px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.reg-table tr:last-child td{border-bottom:none;}
+.reg-table td.num{text-align:right;font-variant-numeric:tabular-nums;}
+.chip-ok{display:inline-block;font-size:11px;font-weight:500;padding:2px 8px;border-radius:var(--radius-sm);background:var(--success-bg);color:var(--success-text);}
+.chip-warn{display:inline-block;font-size:11px;font-weight:500;padding:2px 8px;border-radius:var(--radius-sm);background:var(--warn-bg);color:var(--warn-text);}
+.chip-bad{display:inline-block;font-size:11px;font-weight:500;padding:2px 8px;border-radius:var(--radius-sm);background:var(--danger-bg);color:var(--danger-text);}
+.drop-zone{border:1.5px dashed var(--border2);border-radius:var(--radius);padding:2rem;text-align:center;cursor:pointer;transition:all .15s;}
+.drop-zone:hover,.drop-zone.dragover{border-color:var(--text2);background:var(--bg2);}
+.import-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.import-item:last-child{border-bottom:none;}
+.import-check{width:18px;height:18px;border-radius:50%;background:var(--success-bg);color:var(--success-text);display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--text);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.bench-table{width:100%;border-collapse:collapse;font-size:13px;}
+.bench-table th{font-size:11px;font-weight:500;color:var(--text2);padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;}
+.bench-table th.num{text-align:right;}
+.bench-table td{padding:9px 8px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.bench-table tr:last-child td{border-bottom:none;}
+.bench-table td.num{text-align:right;font-variant-numeric:tabular-nums;}
+.bench-total td{font-weight:500;background:var(--bg2);border-top:1px solid var(--border2)!important;border-bottom:none!important;}
+.bench-badge{display:inline-block;font-size:11px;font-weight:500;padding:2px 7px;border-radius:var(--radius-sm);background:var(--info-bg);color:var(--info-text);}
+.alpha-chip{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:500;padding:3px 8px;border-radius:var(--radius-sm);}
+.alpha-up{background:var(--success-bg);color:var(--success-text);}
+.alpha-down{background:var(--danger-bg);color:var(--danger-text);}
+.alpha-zero{background:var(--bg2);color:var(--text2);}
+.alpha-hero{font-size:28px;font-weight:500;}
+.alpha-hero.up{color:var(--success-text);}
+.alpha-hero.down{color:var(--danger-text);}
+.alpha-hero.zero{color:var(--text2);}
+.peso-bar-bg{height:5px;background:var(--bg2);border-radius:3px;width:60px;display:inline-block;vertical-align:middle;margin-left:4px;}
+.peso-bar-fill{height:5px;border-radius:3px;background:#378ADD;}
+.ptab{padding:5px 12px;border-radius:var(--radius-sm);font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text2);font-family:inherit;transition:all .15s;}
+.ptab.active{background:var(--text);color:var(--bg);border-color:var(--text);}
+.info-hint{font-size:12px;color:var(--text2);background:var(--bg2);border-radius:var(--radius-sm);padding:8px 12px;margin-bottom:12px;line-height:1.6;}
+.plan-tabs-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:1px solid var(--border);}
+.plan-tab-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text2);font-family:inherit;transition:all .15s;white-space:nowrap;}
+.plan-tab-btn:hover{border-color:var(--border2);color:var(--text);}
+.plan-tab-btn.active{background:var(--text);color:var(--bg);border-color:var(--text);}
+.plan-tab-btn .ptb-badge{font-size:10px;font-weight:500;padding:1px 6px;border-radius:99px;}
+.ptb-ok{background:var(--success-bg);color:var(--success-text);}
+.ptb-bad{background:var(--danger-bg);color:var(--danger-text);}
+.plan-tab-btn.active .ptb-badge{background:rgba(255,255,255,0.25);color:var(--bg);}
+.plan-sub-section{display:none;}
+/* API key banner */
+.apikey-banner{background:var(--warn-bg);border:1px solid var(--warn-border);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.apikey-banner.ok{background:var(--success-bg);border-color:var(--success-border);}
+.apikey-input{flex:1;min-width:200px;font-family:monospace;font-size:12px;height:36px;}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- BANNER CHAVE API -->
+<div id="apiBanner" class="apikey-banner">
+  <div style="font-size:18px;">🔑</div>
+  <div style="flex:1;min-width:0;">
+    <div style="font-size:13px;font-weight:500;color:#b45309;margin-bottom:4px;">Chave da API necessária para importar relatórios</div>
+    <div style="font-size:12px;color:#666;">Obtenha em <strong>console.anthropic.com</strong> → API Keys</div>
+  </div>
+  <input id="apiKeyInput" class="apikey-input" type="password" placeholder="sk-ant-..."/>
+  <button class="btn primary" onclick="saveApiKey()">Salvar</button>
+</div>
+
+<div id="view-list">
+  <div class="topbar"><h1>Clientes</h1><button class="btn primary" onclick="showForm()">+ Novo cliente</button></div>
+  <div class="metrics" style="grid-template-columns:repeat(3,1fr);">
+    <div class="metric"><div class="metric-label">Total</div><div class="metric-value" id="mTotal">0</div></div>
+    <div class="metric"><div class="metric-label">Ativos</div><div class="metric-value" id="mAtivos">0</div></div>
+    <div class="metric"><div class="metric-label">Inativos</div><div class="metric-value" id="mInativos">0</div></div>
+  </div>
+  <div id="clientGrid" class="client-grid"></div>
+</div>
+
+<div id="view-form" style="display:none;">
+  <div class="topbar"><button class="btn ghost" onclick="cancelForm()">← Voltar</button><h1 id="formTitle">Novo cliente</h1></div>
+  <div class="card">
+    <div class="form-row full"><div class="form-group"><label>Nome / apelido *</label><input id="fNome" placeholder="Ex: Cliente A"/></div></div>
+    <div class="form-row">
+      <div class="form-group"><label>Perfil de risco</label><select id="fPerfil"><option value="">Selecione</option><option>Conservador</option><option>Moderado</option><option>Arrojado</option></select></div>
+      <div class="form-group"><label>Status</label><select id="fStatus"><option value="ativo">Ativo</option><option value="inativo">Inativo</option></select></div>
+    </div>
+    <div class="form-row full"><div><div style="font-size:12px;color:#666;font-weight:500;margin-bottom:6px;">Objetivos</div><div class="obj-chips" id="objChips"></div></div></div>
+    <div class="form-row full" style="margin-top:12px;">
+      <div class="form-group"><label>Objetivo personalizado</label>
+        <div style="display:flex;gap:8px;"><input id="fObjCustom" placeholder="Digite e pressione Enter..." style="flex:1;" onkeydown="if(event.key==='Enter'){event.preventDefault();addCustomObj();}"/><button class="btn" onclick="addCustomObj()">Adicionar</button></div>
+      </div>
+    </div>
+    <div class="form-actions"><button class="btn" onclick="cancelForm()">Cancelar</button><button class="btn primary" onclick="saveClient()">Salvar</button></div>
+  </div>
+</div>
+
+<div id="view-dash" style="display:none;">
+  <div class="topbar">
+    <button class="btn ghost" onclick="backToList()">← Clientes</button>
+    <div style="display:flex;gap:6px;margin-left:auto;"><button class="btn sm" onclick="editCurrent()">Editar</button><button class="btn sm danger" onclick="deleteCurrent()">Remover</button></div>
+  </div>
+  <div class="dash-header">
+    <div class="dash-avatar" id="dAvatar"></div>
+    <div style="flex:1;min-width:0;"><div class="dash-name" id="dName"></div><div class="dash-sub" id="dSub"></div></div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;"><span class="badge" id="dBadge"></span><span class="badge" id="dPaceBadge" style="display:none;"></span></div>
+  </div>
+  <div id="progWrap" style="display:none;" class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+      <span style="font-size:12px;font-weight:500;color:#666;">Progresso do planejamento</span>
+      <span style="font-size:13px;font-weight:500;" id="progPct">—</span>
+    </div>
+    <div class="prog-track"><div class="prog-fill" id="progBar"></div></div>
+    <div class="prog-labels"><span id="progPatAtual">—</span><span id="progMeta">—</span></div>
+    <div id="progPace" class="pace-banner"></div>
+  </div>
+  <div class="dash-tabs">
+    <button class="dash-tab active" onclick="switchDashTab('visao')">Visão geral</button>
+    <button class="dash-tab" onclick="switchDashTab('ativos')">Ativos</button>
+    <button class="dash-tab" onclick="switchDashTab('planejamento')">Planejamento</button>
+    <button class="dash-tab" onclick="switchDashTab('benchmark')">Benchmark</button>
+    <button class="dash-tab" onclick="switchDashTab('rentabilidade')">Rentabilidade</button>
+    <button class="dash-tab" onclick="switchDashTab('aportes')">Aportes</button>
+  </div>
+
+  <div id="dt-visao" class="dash-section active">
+    <div class="metrics" style="grid-template-columns:repeat(2,1fr);margin-bottom:1.25rem;">
+      <div class="metric"><div class="metric-label">Patrimônio total</div><div class="metric-value" id="dPatrimonio">—</div></div>
+      <div class="metric"><div class="metric-label">Nº de ativos</div><div class="metric-value" id="dNAtivos">—</div></div>
+    </div>
+    <div class="card" style="margin-bottom:1rem;"><div class="section-label">Alocação por tipo</div><div class="pie-wrap"><canvas id="pieChart" width="120" height="120" style="flex-shrink:0;"></canvas><div class="legend" id="pieLegend"></div></div></div>
+    <div class="card"><div class="section-label">Perfil e objetivos</div>
+      <table style="width:100%;font-size:13px;border-collapse:collapse;">
+        <tr><td style="color:#666;padding:6px 0;border-bottom:1px solid var(--border);">Perfil de risco</td><td style="text-align:right;padding:6px 0;border-bottom:1px solid var(--border);" id="dPerfil">—</td></tr>
+        <tr><td style="color:#666;padding:8px 0;vertical-align:top;">Objetivos</td><td style="text-align:right;padding:8px 0;"><div class="obj-tags" id="dObjetivos" style="justify-content:flex-end;"></div></td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div id="dt-ativos" class="dash-section">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px;">
+      <span class="section-label" style="margin:0;">Carteira de ativos</span>
+      <div style="display:flex;gap:8px;"><button class="btn sm accent" onclick="toggleImport()">↑ Importar relatório</button><button class="btn sm primary" onclick="showAssetForm()">+ Adicionar</button></div>
+    </div>
+    <div id="importWrap" class="card" style="display:none;margin-bottom:1rem;">
+      <div class="section-label">Importar relatório (PDF, Excel ou CSV)</div>
+      <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleDrop(event)">
+        <div style="font-size:28px;margin-bottom:8px;">📄</div>
+        <div style="font-size:14px;font-weight:500;margin-bottom:4px;">Arraste ou clique para selecionar</div>
+        <div style="font-size:12px;color:#666;">PDF, Excel (.xlsx) ou CSV</div>
+      </div>
+      <input type="file" id="fileInput" accept=".pdf,.xlsx,.xls,.csv" style="display:none" onchange="handleFile(this.files[0])"/>
+      <div id="importStatus" style="display:none;text-align:center;padding:1rem;font-size:13px;"></div>
+      <div id="importPreview" style="display:none;">
+        <div style="font-size:12px;font-weight:500;color:#666;margin:12px 0 8px;">Dados extraídos — revise e confirme</div>
+        <div id="importSummaryBox" style="margin-bottom:10px;"></div>
+        <div id="importItems"></div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
+          <button class="btn" onclick="cancelImport()">Cancelar</button>
+          <button class="btn primary" onclick="confirmImport()">Confirmar importação</button>
+        </div>
+      </div>
+    </div>
+    <div id="assetFormWrap" class="card" style="display:none;margin-bottom:1rem;">
+      <div class="section-label" id="assetFormTitle">Novo ativo</div>
+      <div class="form-row three">
+        <div class="form-group"><label>Nome *</label><input id="aNome" placeholder="Ex: PETR4"/></div>
+        <div class="form-group"><label>Tipo</label><select id="aTipo"><option value="RF">Renda Fixa</option><option value="RV">Renda Variável</option><option value="FII">FII</option><option value="Crypto">Crypto</option><option value="Previdência">Previdência</option><option value="Outro">Outro</option></select></div>
+        <div class="form-group"><label>Valor (R$) *</label><input id="aValor" type="number" placeholder="10000" min="0"/></div>
+      </div>
+      <div class="form-row"><div class="form-group"><label>Instituição</label><input id="aInstit" placeholder="Ex: XP"/></div><div class="form-group"><label>Observação</label><input id="aObs" placeholder="Ex: venc. 2027"/></div></div>
+      <div class="form-actions"><button class="btn" onclick="cancelAssetForm()">Cancelar</button><button class="btn primary" onclick="saveAsset()">Salvar</button></div>
+    </div>
+    <div class="card" style="padding:.5rem 0;overflow-x:auto;">
+      <table class="asset-table"><thead><tr><th>Ativo</th><th>Tipo</th><th>Instituição</th><th class="num">Valor (R$)</th><th class="num">%</th><th></th></tr></thead><tbody id="assetBody"></tbody></table>
+    </div>
+  </div>
+
+  <div id="dt-planejamento" class="dash-section">
+    <div class="plan-tabs-bar" id="planTabsBar"></div>
+    <div id="plan-sub-principal" class="plan-sub-section" style="display:block;">
+      <div id="pf-form-wrap" class="card">
+        <div class="pf-title">Planejamento principal</div>
+        <div style="font-size:12px;font-weight:500;color:#666;margin-bottom:8px;">Dados pessoais</div>
+        <div class="form-row three">
+          <div class="form-group"><label>Idade atual</label><input id="pfIdade" type="number" placeholder="36"/></div>
+          <div class="form-group"><label>Expectativa de vida</label><input id="pfExpVida" type="number" placeholder="80"/></div>
+          <div class="form-group"><label>Idade de aposentadoria</label><input id="pfIdadeApos" type="number" placeholder="60"/></div>
+        </div>
+        <div style="font-size:12px;font-weight:500;color:#666;margin-bottom:8px;">Renda e despesas</div>
+        <div class="form-row three">
+          <div class="form-group"><label>Renda mensal (R$)</label><input id="pfRenda" type="number" placeholder="15000" oninput="atualizaHint()"/></div>
+          <div class="form-group"><label>Despesa mensal (R$)</label><input id="pfDespesa" type="number" placeholder="10000" oninput="atualizaHint()"/></div>
+          <div class="form-group"><label>Aporte pretendido (R$)</label><input id="pfAporte" type="number" placeholder="em branco = automático" class="highlight"/><div class="aporte-hint">Sobra: <span id="hint-val">—</span></div></div>
+        </div>
+        <div style="font-size:12px;font-weight:500;color:#666;margin-bottom:8px;">Aposentadoria</div>
+        <div class="form-row three">
+          <div class="form-group"><label>Renda desejada aposentadoria (R$)</label><input id="pfRendaApos" type="number" placeholder="8000"/></div>
+          <div class="form-group"><label>Rentabilidade real meta (% a.a.)</label><input id="pfRetorno" type="number" placeholder="5.86" step="0.01"/></div>
+          <div class="form-group"><label>Patrimônio atual (R$)</label><input id="pfPatrimonio" type="number" placeholder="0"/></div>
+        </div>
+        <div class="form-actions"><button class="btn primary" onclick="calcPF()">Gerar relatório</button></div>
+      </div>
+      <div id="pf-result" style="display:none;">
+        <div id="pf-diag" class="diag-card"></div>
+        <div class="card">
+          <div class="section-label">Origem do aporte</div>
+          <div class="two-col" style="margin-bottom:12px;">
+            <div><div style="font-size:11px;color:#666;margin-bottom:4px;">Renda</div><div style="font-size:15px;font-weight:500;color:var(--success-text);" id="pr-renda-m">—</div></div>
+            <div><div style="font-size:11px;color:#666;margin-bottom:4px;">Despesa</div><div style="font-size:15px;font-weight:500;color:var(--danger-text);" id="pr-desp-m">—</div></div>
+          </div>
+          <div style="border-top:1px solid var(--border);padding-top:10px;"><div style="font-size:11px;color:#666;margin-bottom:4px;">Sobra</div><div id="pr-sobra">—</div></div>
+          <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:8px;">
+            <div style="font-size:11px;color:#666;margin-bottom:4px;" id="pr-aporte-lbl">Aporte</div>
+            <div style="display:flex;align-items:baseline;gap:8px;"><div style="font-size:20px;font-weight:500;" id="pr-aporte">—</div><div style="font-size:12px;color:#666;" id="pr-aporte-pct-txt"></div></div>
+            <div class="pbar-wrap"><div class="pbar" id="pr-bar"></div></div>
+          </div>
+        </div>
+        <div class="pf-section">
+          <div class="pf-title">Resumo</div>
+          <div class="three-col" style="margin-bottom:10px;">
+            <div class="metric"><div class="metric-label">Patrimônio projetado</div><div class="metric-value" id="pr-pat">—</div><div class="metric-sub">na aposentadoria</div></div>
+            <div class="metric"><div class="metric-label">Anos até aposentadoria</div><div class="metric-value" id="pr-anos">—</div></div>
+            <div class="metric"><div class="metric-label">Renda sustentável</div><div class="metric-value" id="pr-renda-sust">—</div><div class="formula-box" id="pr-formula-sust"></div></div>
+          </div>
+          <div class="two-col">
+            <div class="metric"><div class="metric-label">Patrimônio mínimo</div><div class="metric-value" id="pr-min">—</div><div class="formula-box" id="pr-formula-min"></div></div>
+            <div class="metric"><div class="metric-label">Patrimônio ideal</div><div class="metric-value" id="pr-pres">—</div><div class="formula-box" id="pr-formula-pres"></div></div>
+          </div>
+        </div>
+        <div class="pf-section"><div class="pf-title">Projeção patrimonial</div>
+          <div class="card" style="padding:1rem;"><canvas id="projChart" height="200"></canvas>
+            <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;">
+              <div style="display:flex;align-items:center;gap:6px;font-size:12px;"><div style="width:12px;height:3px;background:#378ADD;border-radius:2px;"></div>Projeção</div>
+              <div style="display:flex;align-items:center;gap:6px;font-size:12px;"><div style="width:12px;height:3px;background:#1D9E75;border-radius:2px;"></div>Preservação</div>
+              <div style="display:flex;align-items:center;gap:6px;font-size:12px;"><div style="width:12px;height:3px;background:#EF9F27;border-radius:2px;"></div>Consumo</div>
+            </div>
+          </div>
+        </div>
+        <div class="pf-section"><div class="pf-title">Na prática</div><div id="pf-steps"></div></div>
+        <button class="btn" onclick="g('pf-form-wrap').style.display='';g('pf-result').style.display='none';">← Ajustar dados</button>
+      </div>
+    </div>
+    <div id="plan-sub-projeto" class="plan-sub-section" style="display:none;">
+      <div id="proj-diag" class="diag-card"></div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><span style="font-size:12px;font-weight:500;color:#666;">Progresso</span><span style="font-size:13px;font-weight:500;" id="proj-pct">—</span></div>
+        <div class="prog-track"><div class="prog-fill" id="proj-progBar"></div></div>
+        <div class="prog-labels"><span id="proj-progAtual">—</span><span id="proj-progMeta">—</span></div>
+        <div id="proj-paceBox" class="pace-banner" style="margin-top:10px;"></div>
+      </div>
+      <div class="three-col" style="margin-bottom:1rem;">
+        <div class="metric"><div class="metric-label">Valor projetado</div><div class="metric-value" id="proj-fv">—</div></div>
+        <div class="metric"><div class="metric-label">Falta acumular</div><div class="metric-value" id="proj-falta">—</div></div>
+        <div class="metric"><div class="metric-label">Prazo</div><div class="metric-value" id="proj-prazo">—</div></div>
+      </div>
+      <div class="card" style="padding:1rem;margin-bottom:1rem;"><canvas id="proj-chart" height="180"></canvas></div>
+      <div id="proj-obsCard" class="card" style="display:none;"><div class="section-label">Observações</div><div style="font-size:13px;color:#666;" id="proj-obs"></div></div>
+      <div style="display:flex;gap:8px;margin-top:.5rem;">
+        <button class="btn sm" onclick="editProjAtivo()">Editar</button>
+        <button class="btn sm danger" onclick="deleteProjAtivo()">Remover</button>
+      </div>
+    </div>
+    <div id="plan-sub-proj-form" class="plan-sub-section" style="display:none;">
+      <div class="card">
+        <div class="pf-title" id="projFormTitleInner">Novo projeto</div>
+        <div class="form-row">
+          <div class="form-group"><label>Nome *</label><input id="prjNome" placeholder="Ex: Viagem Europa 2027"/></div>
+          <div class="form-group"><label>Categoria</label><select id="prjCategoria"><option value="viagem">✈ Viagem</option><option value="imovel">🏠 Imóvel</option><option value="veiculo">🚗 Veículo</option><option value="liquidez">💧 Liquidez</option><option value="educacao">📚 Educação</option><option value="negocio">💼 Negócio</option><option value="outro">📌 Outro</option></select></div>
+        </div>
+        <div class="form-row three">
+          <div class="form-group"><label>Valor necessário (R$) *</label><input id="prjMeta" type="number" placeholder="50000"/></div>
+          <div class="form-group"><label>Já reservado (R$)</label><input id="prjAtual" type="number" placeholder="0"/></div>
+          <div class="form-group"><label>Prazo (meses)</label><input id="prjPrazo" type="number" placeholder="24"/></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Aporte mensal (R$)</label><input id="prjAporte" type="number" placeholder="2000"/></div>
+          <div class="form-group"><label>Rentabilidade real (% a.a.)</label><input id="prjRetorno" type="number" placeholder="5.86" step="0.01"/></div>
+        </div>
+        <div class="form-row full"><div class="form-group"><label>Observações</label><textarea id="prjObs" placeholder="Detalhes..."></textarea></div></div>
+        <div class="form-actions"><button class="btn" onclick="cancelProjForm()">Cancelar</button><button class="btn primary" onclick="saveProj()">Salvar</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="dt-benchmark" class="dash-section">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px;">
+      <div><div style="font-size:14px;font-weight:500;">Carteira Teórica de Benchmark</div><div style="font-size:12px;color:#666;">Compare a carteira real com benchmarks por classe</div></div>
+      <button class="btn primary" onclick="bmShowClasseForm(null)">+ Adicionar classe</button>
+    </div>
+    <div id="bm_classeForm" class="card" style="display:none;margin-bottom:1rem;">
+      <div class="section-label" id="bm_classeFormTitle">Nova classe</div>
+      <div class="form-row" style="grid-template-columns:2fr 1fr 1fr 1fr;">
+        <div class="form-group"><label>Nome *</label><input id="bm_nome" placeholder="Ex: Pós-fixado"/></div>
+        <div class="form-group"><label>Peso (%)</label><input id="bm_peso" type="number" placeholder="40" min="0" max="100" step="0.1"/></div>
+        <div class="form-group"><label>Benchmark</label><select id="bm_bench"><option>CDI</option><option>IPCA+</option><option>Ibovespa</option><option>S&P 500</option><option>IFIX</option><option>IMA-B</option><option>IHFA</option><option>Dólar</option><option>Poupança</option><option value="Outro">Personalizado</option></select></div>
+        <div class="form-group"><label>Personalizado</label><input id="bm_benchCustom" placeholder="Ex: MSCI World"/></div>
+      </div>
+      <div class="form-actions"><button class="btn" onclick="bmCancelClasseForm()">Cancelar</button><button class="btn primary" onclick="bmSaveClasse()">Salvar</button></div>
+    </div>
+    <div id="bm_empty" style="text-align:center;padding:2.5rem;color:#666;"><div style="font-size:28px;margin-bottom:10px;">📊</div><div style="font-size:15px;font-weight:500;margin-bottom:6px;">Nenhuma classe</div>Clique em <strong>+ Adicionar classe</strong> para começar.</div>
+    <div id="bm_content" style="display:none;">
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px;"><span class="section-label" style="margin:0;">Períodos</span><button class="btn sm primary" onclick="bmShowPeriodoForm()">+ Registrar período</button></div>
+        <div id="bm_periodoForm" style="display:none;margin-bottom:1rem;">
+          <div class="form-row"><div class="form-group"><label>Mês/Ano</label><input id="bm_periodoNome" type="month"/></div><div></div></div>
+          <div id="bm_periodoLinhas"></div>
+          <div class="form-actions"><button class="btn" onclick="bmCancelPeriodoForm()">Cancelar</button><button class="btn primary" onclick="bmSavePeriodo()">Salvar</button></div>
+        </div>
+        <div id="bm_periodoTabs" style="display:flex;flex-wrap:wrap;gap:6px;min-height:28px;"></div>
+      </div>
+      <div id="bm_resumo" class="card" style="display:none;">
+        <div class="section-label">Resultado do período</div>
+        <div class="three-col" style="margin-bottom:1rem;">
+          <div class="metric"><div class="metric-label">Retorno real</div><div class="metric-value" id="bm_rReal">—</div></div>
+          <div class="metric"><div class="metric-label">Benchmark</div><div class="metric-value" id="bm_rBench">—</div></div>
+          <div class="metric"><div class="metric-label">Alpha</div><div class="metric-value" id="bm_rAlpha">—</div></div>
+        </div>
+        <div style="background:var(--bg2);border-radius:var(--radius);padding:1rem;display:flex;align-items:center;gap:16px;">
+          <div class="alpha-hero" id="bm_alphaHero">—</div>
+          <div><div style="font-size:14px;font-weight:500;" id="bm_alphaMsg">—</div><div style="font-size:12px;color:#666;" id="bm_alphaSub">—</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;"><span class="section-label" style="margin:0;">Por classe</span><span style="font-size:11px;color:#666;" id="bm_pesoTotal"></span></div>
+        <div style="overflow-x:auto;"><table class="bench-table"><thead><tr><th>Classe</th><th>Benchmark</th><th class="num">Peso</th><th class="num">Rent. real</th><th class="num">Benchmark</th><th class="num">Alpha</th><th class="num">Status</th><th></th></tr></thead><tbody id="bm_classeBody"></tbody></table></div>
+      </div>
+      <div class="card" style="padding:1rem;"><canvas id="bm_chart" height="190"></canvas></div>
+    </div>
+  </div>
+
+  <div id="dt-rentabilidade" class="dash-section">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;"><span class="section-label" style="margin:0;">Rentabilidade mensal</span><button class="btn sm primary" onclick="showRentForm()">+ Registrar</button></div>
+    <div id="rentFormWrap" class="card" style="display:none;margin-bottom:1rem;">
+      <div class="section-label" id="rentFormTitle">Novo registro</div>
+      <div class="form-row three">
+        <div class="form-group"><label>Mês/Ano</label><input id="rMes" type="month"/></div>
+        <div class="form-group"><label>Rentabilidade real (%)</label><input id="rRent" type="number" step="0.01" placeholder="0.48"/></div>
+        <div class="form-group"><label>Patrimônio no fim (R$)</label><input id="rPat" type="number" placeholder="2500000"/></div>
+      </div>
+      <div class="form-row full"><div class="form-group"><label>Observação</label><input id="rObs" placeholder="Ex: mês volátil..."/></div></div>
+      <div class="form-actions"><button class="btn" onclick="cancelRentForm()">Cancelar</button><button class="btn primary" onclick="saveRent()">Salvar</button></div>
+    </div>
+    <div id="rentSummary" style="margin-bottom:1rem;display:none;"><div class="three-col"><div class="metric"><div class="metric-label">Média mensal</div><div class="metric-value" id="rs-media">—</div></div><div class="metric"><div class="metric-label">Meta mensal</div><div class="metric-value" id="rs-meta">—</div></div><div class="metric"><div class="metric-label">Acima da meta</div><div class="metric-value" id="rs-acima">—</div></div></div></div>
+    <div class="card" style="padding:.5rem 0;overflow-x:auto;"><table class="reg-table"><thead><tr><th>Mês</th><th class="num">Rent. (%)</th><th class="num">vs meta</th><th class="num">Patrimônio</th><th>Obs.</th><th></th></tr></thead><tbody id="rentBody"></tbody></table></div>
+    <div class="card" style="margin-top:1rem;padding:1rem;"><canvas id="rentChart" height="160"></canvas></div>
+  </div>
+
+  <div id="dt-aportes" class="dash-section">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;"><span class="section-label" style="margin:0;">Aportes realizados</span><button class="btn sm primary" onclick="showAporteForm()">+ Registrar</button></div>
+    <div id="aporteFormWrap" class="card" style="display:none;margin-bottom:1rem;">
+      <div class="section-label" id="aporteFormTitle">Novo aporte</div>
+      <div class="form-row three">
+        <div class="form-group"><label>Mês/Ano</label><input id="apMes" type="month"/></div>
+        <div class="form-group"><label>Valor aportado (R$)</label><input id="apValor" type="number" placeholder="15000"/></div>
+        <div class="form-group"><label>Tipo</label><select id="apTipo"><option value="regular">Regular</option><option value="extra">Extra</option><option value="parcial">Parcial</option><option value="sem_aporte">Sem aporte</option></select></div>
+      </div>
+      <div class="form-row full"><div class="form-group"><label>Observação</label><input id="apObs" placeholder="Ex: bônus..."/></div></div>
+      <div class="form-actions"><button class="btn" onclick="cancelAporteForm()">Cancelar</button><button class="btn primary" onclick="saveAporte()">Salvar</button></div>
+    </div>
+    <div id="aporteSummary" style="margin-bottom:1rem;display:none;"><div class="three-col"><div class="metric"><div class="metric-label">Total aportado</div><div class="metric-value" id="as-total">—</div></div><div class="metric"><div class="metric-label">Média mensal</div><div class="metric-value" id="as-media">—</div></div><div class="metric"><div class="metric-label">Meses no pace</div><div class="metric-value" id="as-pace">—</div></div></div></div>
+    <div class="card" style="padding:.5rem 0;overflow-x:auto;"><table class="reg-table"><thead><tr><th>Mês</th><th class="num">Aportado</th><th class="num">Meta</th><th class="num">Status</th><th>Tipo</th><th>Obs.</th><th></th></tr></thead><tbody id="aporteBody"></tbody></table></div>
+    <div class="card" style="margin-top:1rem;padding:1rem;"><canvas id="aporteChart" height="160"></canvas></div>
+  </div>
+</div>
+</div>
+<div id="toast" class="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+// URL do proxy — quando rodando no Vercel, usa /api/proxy relativo
+const PROXY_URL = null; // chamada direta à API
+
+const OBJETIVOS_PADRAO=['Aposentadoria','Independência financeira','Compra de imóvel','Reserva de emergência','Educação dos filhos','Viagem','Troca de carro','Abrir negócio'];
+const COLORS=['#378ADD','#1D9E75','#EF9F27','#D85A30','#7F77DD','#888780'];
+const TIPO_LABELS={RF:'Renda Fixa',RV:'Renda Variável',FII:'FII',Crypto:'Crypto',Previdência:'Previdência',Outro:'Outro'};
+const CAT_ICONS={viagem:'✈',imovel:'🏠',veiculo:'🚗',liquidez:'💧',educacao:'📚',negocio:'💼',outro:'📌'};
+
+let clients=[],currentId=null,editingId=null,editingAssetId=null,selectedObjs=[],importedData=null;
+let projChartObj=null,rentChartObj=null,aporteChartObj=null,bmChartObj=null,prjChartObj=null;
+let editingRentId=null,editingAporteId=null,bmEditingClasseId=null,editingProjId=null,activeProjSubId='principal';
+let apiKey='';
+
+function g(id){return document.getElementById(id);}
+function initials(n){return n.trim().split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();}
+function fmtBRL(v,d=0){return 'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});}
+function fmtM(v){if(Math.abs(v)>=1e6)return 'R$ '+(v/1e6).toFixed(2).replace('.',',')+'Mi';if(Math.abs(v)>=1e3)return 'R$ '+(v/1e3).toFixed(0)+'k';return fmtBRL(v);}
+function fmtMes(m){if(!m)return '—';const[y,mo]=m.split('-');const n=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];return n[parseInt(mo)-1]+'/'+y.slice(2);}
+function fmtP(v,d=2){return Number(v).toFixed(d)+'%';}
+function fmtA(v){return(v>0?'+':'')+Number(v).toFixed(2)+'%';}
+function showToast(msg){const t=g('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+function showView(n){['list','form','dash'].forEach(v=>g('view-'+v).style.display=v===n?'':'none');}
+function backToList(){currentId=null;showView('list');renderList();}
+function atualizaHint(){const r=Number(g('pfRenda').value)||0;const d=Number(g('pfDespesa').value)||0;const s=r-d;const el=g('hint-val');el.textContent=s>=0?fmtBRL(s)+'/mês':'negativo';el.style.color=s>0?'#1565c0':'#c62828';}
+
+// API KEY
+function saveApiKey(){
+  const val=g('apiKeyInput').value.trim();
+  if(!val.startsWith('sk-ant-')){showToast('Chave inválida — deve começar com sk-ant-');return;}
+  apiKey=val;try{localStorage.setItem('fp_apikey',val);}catch(e){}
+  const b=g('apiBanner');b.className='apikey-banner ok';
+  b.innerHTML=`<div style="font-size:18px;">✓</div><div style="flex:1;"><div style="font-size:13px;font-weight:500;color:#2e7d32;">Chave da API configurada</div><div style="font-size:12px;color:#666;">Importação de relatórios ativa</div></div><button class="btn sm" onclick="clearApiKey()">Remover</button>`;
+  showToast('Chave salva!');
+}
+function clearApiKey(){
+  apiKey='';try{localStorage.removeItem('fp_apikey');}catch(e){}
+  const b=g('apiBanner');b.className='apikey-banner';
+  b.innerHTML=`<div style="font-size:18px;">🔑</div><div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;color:#b45309;margin-bottom:4px;">Chave da API necessária para importar relatórios</div><div style="font-size:12px;color:#666;">Obtenha em <strong>console.anthropic.com</strong> → API Keys</div></div><input id="apiKeyInput" class="apikey-input" type="password" placeholder="sk-ant-..."/><button class="btn primary" onclick="saveApiKey()">Salvar</button>`;
+}
+
+// IMPORT via proxy
+const PROMPT_JSON=`Analise este relatório financeiro e retorne APENAS um JSON válido, sem texto adicional:
+{"patrimonio_total":0,"rentabilidade_periodo":0,"ativos":[{"nome":"","tipo":"RF","valor":0,"instituicao":""}]}
+Tipos: RF=renda fixa/CDB/LCI/LCA/tesouro, RV=ações/ETF, FII=fundos imobiliários, Previdência=PGBL/VGBL, Crypto=cripto, Outro=demais.`;
+
+function toggleImport(){
+  if(!apiKey){showToast('Configure a chave da API (topo da página)');return;}
+  const w=g('importWrap');w.style.display=w.style.display==='none'?'':'none';
+}
+function handleDrop(e){e.preventDefault();g('dropZone').classList.remove('dragover');const f=e.dataTransfer.files[0];if(f)handleFile(f);}
+
+async function handleFile(file){
+  if(!file)return;
+  if(!apiKey){showToast('Configure a chave da API primeiro.');return;}
+  const ext=file.name.split('.').pop().toLowerCase();
+  const status=g('importStatus');
+  g('importPreview').style.display='none';
+  status.style.display='';
+  status.innerHTML=`<div style="display:flex;align-items:center;justify-content:center;gap:10px;"><div class="spinner"></div> Analisando <strong>${file.name}</strong>…</div>`;
+  try{
+    let payload;
+    if(ext==='pdf'){
+      const buf=await file.arrayBuffer();
+      const bytes=new Uint8Array(buf);let bin='';const cs=8192;
+      for(let i=0;i<bytes.length;i+=cs)bin+=String.fromCharCode(...bytes.subarray(i,i+cs));
+      payload={model:'claude-haiku-4-5-20251001',max_tokens:2000,messages:[{role:'user',content:[{type:'document',source:{type:'base64',media_type:'application/pdf',data:btoa(bin)}},{type:'text',text:PROMPT_JSON}]}]};
+    } else {
+      let text='';
+      if(ext==='csv')text=await file.text();
+      else if(ext==='xlsx'||ext==='xls'){const buf=await file.arrayBuffer();const wb=XLSX.read(buf,{type:'array'});text=wb.SheetNames.map(n=>XLSX.utils.sheet_to_csv(wb.Sheets[n])).join('\n\n---\n\n');}
+      else{status.innerHTML='Formato não suportado.';return;}
+      payload={model:'claude-haiku-4-5-20251001',max_tokens:2000,messages:[{role:'user',content:`${PROMPT_JSON}\n\nArquivo:\n${text.slice(0,12000)}`}]};
+    }
+    // chama via proxy (sem restrição de CORS)
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true',
+        'x-api-key':apiKey
+      },
+      body:JSON.stringify(payload)
+    });
+    if(!res.ok){const t=await res.text();throw new Error(`API ${res.status}: ${t.slice(0,300)}`);}
+    const data=await res.json();
+    const raw=data.content?.[0]?.text||'';
+    if(!raw){status.innerHTML='Nenhum dado retornado.';return;}
+    renderImportPreview(raw);
+    status.style.display='none';
+  }catch(e){
+    status.innerHTML=`<span style="color:#c62828;">❌ ${e.message}</span>`;
+  }
+}
+
+function parseJSON(raw){const c=raw.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();try{return JSON.parse(c);}catch(e){const m=c.match(/\{[\s\S]*\}/);if(m)return JSON.parse(m[0]);throw new Error('Não foi possível interpretar o retorno.');}}
+function renderImportPreview(raw){let p;try{p=parseJSON(raw);}catch(e){showToast('Erro: '+e.message);return;}importedData=p;const ativos=p.ativos||[];const pat=p.patrimonio_total||ativos.reduce((s,a)=>s+(a.valor||0),0);const rent=p.rentabilidade_periodo;g('importSummaryBox').innerHTML=`<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;"><div class="metric" style="flex:1;min-width:100px;"><div class="metric-label">Patrimônio</div><div class="metric-value" style="font-size:16px;">${fmtM(pat)}</div></div>${rent?`<div class="metric" style="flex:1;min-width:100px;"><div class="metric-label">Rentabilidade</div><div class="metric-value" style="font-size:16px;">${Number(rent).toFixed(2)}%</div></div>`:''}<div class="metric" style="flex:1;min-width:100px;"><div class="metric-label">Ativos</div><div class="metric-value" style="font-size:16px;">${ativos.length}</div></div></div>`;g('importItems').innerHTML=ativos.map((a,i)=>`<div class="import-item"><div class="import-check">✓</div><div style="flex:1;font-weight:500;">${a.nome||'Ativo '+(i+1)}</div><span class="tipo-badge tipo-${a.tipo||'Outro'}">${a.tipo||'Outro'}</span>${a.instituicao?`<span style="font-size:12px;color:#666;">${a.instituicao}</span>`:''}<div style="font-weight:500;">${fmtBRL(a.valor||0)}</div></div>`).join('');g('importPreview').style.display='';}
+async function confirmImport(){if(!importedData)return;const c=clients.find(x=>x.id===currentId);if(!c)return;c.ativos=(importedData.ativos||[]).map(a=>({id:Date.now().toString()+Math.random(),nome:a.nome||'Ativo',tipo:a.tipo||'Outro',valor:Number(a.valor)||0,instit:a.instituicao||'',obs:''}));const rent=importedData.rentabilidade_periodo;if(rent){if(!c.rents)c.rents=[];const now=new Date();const mes=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');c.rents.push({id:Date.now().toString(),mes,rent:Number(rent),pat:importedData.patrimonio_total||0,obs:'Importado'});}await persist();const total=c.ativos.reduce((s,a)=>s+a.valor,0);g('dPatrimonio').textContent=fmtBRL(total);g('dNAtivos').textContent=c.ativos.length;renderPie(c.ativos);renderAssetTable(c.ativos);renderRentTable(c);renderProgress(c);g('importWrap').style.display='none';cancelImport();showToast(`${c.ativos.length} ativos importados!`);}
+function cancelImport(){importedData=null;g('importPreview').style.display='none';g('importStatus').style.display='none';}
+
+// CLIENTES
+function buildChips(sel){selectedObjs=sel?[...sel]:[];const wrap=g('objChips');const all=[...new Set([...OBJETIVOS_PADRAO,...selectedObjs])];wrap.innerHTML=all.map(o=>{const s=selectedObjs.includes(o);return`<button type="button" class="obj-chip ${s?'selected':''}" onclick="toggleObj('${o}',this)"><span class="check">✓</span>${o}</button>`;}).join('');}
+function toggleObj(obj,el){if(selectedObjs.includes(obj)){selectedObjs=selectedObjs.filter(o=>o!==obj);el.classList.remove('selected');}else{selectedObjs.push(obj);el.classList.add('selected');}}
+function addCustomObj(){const i=g('fObjCustom');const v=i.value.trim();if(!v)return;if(!selectedObjs.includes(v))selectedObjs.push(v);i.value='';const wrap=g('objChips');const btn=document.createElement('button');btn.type='button';btn.className='obj-chip selected';btn.onclick=()=>toggleObj(v,btn);btn.innerHTML=`<span class="check">✓</span>${v}`;wrap.appendChild(btn);}
+function showForm(id){editingId=id||null;if(id){const c=clients.find(x=>x.id===id);g('formTitle').textContent='Editar cliente';g('fNome').value=c.nome||'';g('fPerfil').value=c.perfil||'';g('fStatus').value=c.status||'ativo';buildChips(c.objetivos||[]);}else{g('formTitle').textContent='Novo cliente';g('fNome').value='';g('fPerfil').value='';g('fStatus').value='ativo';buildChips([]);}g('fObjCustom').value='';showView('form');}
+function cancelForm(){if(editingId){editingId=null;openDash(currentId);}else{editingId=null;showView('list');renderList();}}
+async function saveClient(){const nome=g('fNome').value.trim();if(!nome){showToast('Informe o nome.');return;}const d={nome,perfil:g('fPerfil').value,status:g('fStatus').value,objetivos:[...selectedObjs]};if(editingId){const idx=clients.findIndex(c=>c.id===editingId);if(idx>=0)clients[idx]={...clients[idx],...d};currentId=editingId;editingId=null;await persist();showToast('Atualizado!');openDash(currentId);}else{const nc={id:Date.now().toString(),ativos:[],pf:{},rents:[],aportes:[],benchmark:{classes:[],periodos:[],periodoSel:null},projetos:[],...d};clients.push(nc);await persist();showToast('Salvo!');openDash(nc.id);}}
+function editCurrent(){showForm(currentId);}
+async function deleteCurrent(){clients=clients.filter(c=>c.id!==currentId);currentId=null;await persist();showToast('Removido.');backToList();}
+
+// PROJETOS
+function getProjs(){const c=clients.find(x=>x.id===currentId);if(!c.projetos)c.projetos=[];return c.projetos;}
+function calcProj(p){const r=(p.retorno||5.86)/100;const rm=r/12;const prazo=p.prazo||0;const fv=(p.atual||0)*Math.pow(1+rm,prazo)+(p.aporte>0?p.aporte*(Math.pow(1+rm,prazo)-1)/rm:0);return{fv,rm,prazo};}
+function renderPlanTabs(activeId){activeProjSubId=activeId;const projs=getProjs();let html=`<button class="plan-tab-btn ${activeId==='principal'?'active':''}" onclick="switchPlanSub('principal')">🏖 Planejamento principal</button>`;projs.forEach(p=>{const{fv}=calcProj(p);const ok=fv>=p.meta;const pct=p.meta>0?Math.min(100,Math.round((p.atual/p.meta)*100)):0;html+=`<button class="plan-tab-btn ${activeId===p.id?'active':''}" onclick="switchPlanSub('${p.id}')">${CAT_ICONS[p.categoria]||'📌'} ${p.nome} <span class="ptb-badge ${ok?'ptb-ok':'ptb-bad'}">${pct}%</span></button>`;});html+=`<button class="plan-tab-btn" onclick="switchPlanSub('novo')" style="border-style:dashed;">+ Novo projeto</button>`;g('planTabsBar').innerHTML=html;['plan-sub-principal','plan-sub-projeto','plan-sub-proj-form'].forEach(id=>g(id).style.display='none');if(activeId==='principal')g('plan-sub-principal').style.display='block';else if(activeId==='novo'){editingProjId=null;g('projFormTitleInner').textContent='Novo projeto';['prjNome','prjMeta','prjAtual','prjPrazo','prjAporte','prjObs'].forEach(id=>g(id).value='');g('prjCategoria').value='viagem';g('prjRetorno').value=5.86;g('plan-sub-proj-form').style.display='block';}else{const p=projs.find(x=>x.id===activeId);if(p){g('plan-sub-projeto').style.display='block';renderProjDetail(p);}else switchPlanSub('principal');}}
+function switchPlanSub(id){renderPlanTabs(id);}
+function renderProjDetail(p){const{fv,rm,prazo}=calcProj(p);let dc,dt,dx;if(fv>=p.meta){dc='diag-ok';dt='Meta atingível';dx=`Com ${fmtBRL(p.aporte||0,0)}/mês por ${prazo} meses, projeção de ${fmtM(fv)} supera a meta de ${fmtM(p.meta)}.`;}else{dc='diag-bad';dt='Meta não atingida com o plano atual';dx=`Projeção de ${fmtM(fv)} está ${fmtM(p.meta-fv)} abaixo da meta.`;}g('proj-diag').className=`diag-card ${dc}`;g('proj-diag').innerHTML=`<div class="diag-title">${dt}</div><div class="diag-text">${dx}</div>`;const pct=p.meta>0?Math.min(100,Math.round((p.atual/p.meta)*100)):0;const bar=g('proj-progBar');bar.style.width=pct+'%';bar.className='prog-fill '+(pct>=80?'prog-ok':pct>=50?'prog-warn':'prog-bad');g('proj-pct').textContent=pct+'%';g('proj-progAtual').textContent=fmtM(p.atual||0)+' reservado';g('proj-progMeta').textContent='Meta: '+fmtM(p.meta);const ok=fv>=p.meta;const pb=g('proj-paceBox');pb.style.background=ok?'#e8f5e9':'#fff8e1';pb.innerHTML=`<div style="font-size:18px;">${ok?'✓':'!'}</div><div><div style="font-size:13px;font-weight:500;color:${ok?'#2e7d32':'#e65100'};">${ok?'No pace':'Ajuste necessário'}</div><div style="font-size:12px;color:#666;">${ok?`${fmtM(fv)} ≥ ${fmtM(p.meta)}`:`Faltam ${fmtM(p.meta-fv)}`}</div></div>`;g('proj-fv').textContent=fmtM(fv);g('proj-falta').textContent=fv>=p.meta?'✓ Meta atingida':fmtM(p.meta-fv);g('proj-falta').style.color=fv>=p.meta?'#2e7d32':'#c62828';g('proj-prazo').textContent=prazo+' meses';if(p.obs){g('proj-obsCard').style.display='';g('proj-obs').textContent=p.obs;}else g('proj-obsCard').style.display='none';if(prjChartObj)prjChartObj.destroy();const labels=[],data=[];let acum=p.atual||0;for(let m=0;m<=prazo;m++){labels.push(m===0?'Hoje':`M${m}`);data.push(Math.round(acum));acum=acum*(1+rm)+(p.aporte||0);}prjChartObj=new Chart(g('proj-chart').getContext('2d'),{type:'line',data:{labels,datasets:[{label:'Acumulado',data,borderColor:'#378ADD',backgroundColor:'rgba(55,138,221,0.08)',borderWidth:2,pointRadius:0,pointHoverRadius:5,tension:.3,fill:true},{label:'Meta',data:labels.map(()=>p.meta),borderColor:'#D85A30',backgroundColor:'transparent',borderWidth:1.5,borderDash:[4,3],pointRadius:0}]},options:{responsive:true,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{callbacks:{title:t=>`Mês ${t[0].dataIndex} de ${prazo}`,label:t=>`${t.dataset.label}: ${fmtM(t.raw)}`}}},scales:{x:{ticks:{font:{size:10},color:'#888',maxTicksLimit:13},grid:{display:false}},y:{ticks:{font:{size:11},color:'#888',callback:v=>fmtM(v)},grid:{color:'rgba(0,0,0,0.05)'}}}}})}
+function editProjAtivo(){if(!activeProjSubId||activeProjSubId==='principal')return;const p=getProjs().find(x=>x.id===activeProjSubId);if(!p)return;editingProjId=activeProjSubId;g('projFormTitleInner').textContent='Editar projeto';g('prjNome').value=p.nome||'';g('prjCategoria').value=p.categoria||'viagem';g('prjMeta').value=p.meta||'';g('prjAtual').value=p.atual||'';g('prjPrazo').value=p.prazo||'';g('prjAporte').value=p.aporte||'';g('prjRetorno').value=p.retorno||5.86;g('prjObs').value=p.obs||'';g('plan-sub-projeto').style.display='none';g('plan-sub-proj-form').style.display='block';}
+async function deleteProjAtivo(){if(!activeProjSubId||activeProjSubId==='principal')return;const c=clients.find(x=>x.id===currentId);c.projetos=(c.projetos||[]).filter(x=>x.id!==activeProjSubId);await persist();showToast('Removido.');renderPlanTabs('principal');}
+function cancelProjForm(){if(editingProjId){renderPlanTabs(editingProjId);editingProjId=null;}else renderPlanTabs('principal');}
+async function saveProj(){const nome=g('prjNome').value.trim();if(!nome){showToast('Informe o nome.');return;}const meta=Number(g('prjMeta').value)||0;if(!meta){showToast('Informe o valor necessário.');return;}const d={nome,categoria:g('prjCategoria').value,meta,atual:Number(g('prjAtual').value)||0,prazo:Number(g('prjPrazo').value)||0,aporte:Number(g('prjAporte').value)||0,retorno:Number(g('prjRetorno').value)||5.86,obs:g('prjObs').value.trim()};const c=clients.find(x=>x.id===currentId);if(!c.projetos)c.projetos=[];let savedId;if(editingProjId){const idx=c.projetos.findIndex(x=>x.id===editingProjId);if(idx>=0)c.projetos[idx]={...c.projetos[idx],...d};savedId=editingProjId;}else{savedId=Date.now().toString();c.projetos.push({id:savedId,...d});}editingProjId=null;await persist();showToast('Projeto salvo!');renderPlanTabs(savedId);}
+
+// PROGRESS
+function renderProgress(c){const pf=c.pf||{};const wrap=g('progWrap');if(!pf.patrimonio||!pf.idadeApos||!pf.retorno){wrap.style.display='none';return;}wrap.style.display='';const pat=(c.ativos||[]).reduce((s,a)=>s+Number(a.valor||0),0)||pf.patrimonio;const r=pf.retorno/100;const rm=r/12;const anos=pf.idadeApos-pf.idade;const au=pf.aporte>0?pf.aporte:Math.max(0,(pf.renda||0)-(pf.despesa||0));const meta=pf.patrimonio*Math.pow(1+r,anos)+(au>0?au*(Math.pow(1+rm,anos*12)-1)/rm:0);const pct=Math.min(100,Math.round((pat/meta)*100));const bar=g('progBar');bar.style.width=pct+'%';bar.className='prog-fill '+(pct>=80?'prog-ok':pct>=50?'prog-warn':'prog-bad');g('progPct').textContent=pct+'%';g('progPatAtual').textContent=fmtM(pat)+' atual';g('progMeta').textContent='Meta: '+fmtM(meta);const meses=Math.max(1,(c.rents||[]).length);const pe=pf.patrimonio*Math.pow(1+r,meses/12)+(au>0?au*(Math.pow(1+rm,meses)-1)/rm:0);const ok=pat>=pe*0.95,ahead=pat>=pe*1.05;g('progPace').className=`pace-banner ${ok?'pace-ok':'pace-warn'}`;g('progPace').innerHTML=`<div style="font-size:18px;">${ahead?'↑':ok?'✓':'!'}</div><div><div class="pace-text">${ahead?'Acima do pace':ok?'No pace':'Abaixo do pace'}</div><div class="pace-sub">${ahead?'À frente.':ok?'No esperado.':'Abaixo do projetado.'}</div></div>`;const pb=g('dPaceBadge');pb.style.display='';pb.textContent=ahead?'Acima do pace':ok?'No pace':'Abaixo do pace';pb.className=`badge pace-${ok?'ok':'warn'}`;}
+
+function openDash(id){currentId=id;const c=clients.find(x=>x.id===id);if(!c)return;if(!c.benchmark)c.benchmark={classes:[],periodos:[],periodoSel:null};if(!c.projetos)c.projetos=[];g('dAvatar').textContent=initials(c.nome);g('dName').textContent=c.nome;g('dSub').textContent=c.perfil||(c.objetivos?.length?c.objetivos[0]:'');const badge=g('dBadge');badge.textContent=c.status||'ativo';badge.className='badge '+(c.status||'ativo');const total=(c.ativos||[]).reduce((s,a)=>s+Number(a.valor||0),0);g('dPatrimonio').textContent=total>0?fmtBRL(total):'—';g('dNAtivos').textContent=(c.ativos||[]).length;g('dPerfil').textContent=c.perfil||'—';g('dObjetivos').innerHTML=(c.objetivos||[]).length?c.objetivos.map(o=>`<span class="obj-tag">${o}</span>`).join(''):'<span style="color:#666;font-size:12px;">Nenhum</span>';renderPie(c.ativos||[]);renderAssetTable(c.ativos||[]);loadPFForm(c);renderProgress(c);renderRentTable(c);renderAporteTable(c);bmCancelClasseForm();bmCancelPeriodoForm();cancelAssetForm();cancelRentForm();cancelAporteForm();cancelImport();g('importWrap').style.display='none';g('pf-result').style.display='none';g('pf-form-wrap').style.display='';editingProjId=null;activeProjSubId='principal';switchDashTab('visao');showView('dash');}
+function loadPFForm(c){const pf=c.pf||{};const pat=(c.ativos||[]).reduce((s,a)=>s+Number(a.valor||0),0);g('pfIdade').value=pf.idade||'';g('pfExpVida').value=pf.expVida||80;g('pfIdadeApos').value=pf.idadeApos||'';g('pfRenda').value=pf.renda||'';g('pfDespesa').value=pf.despesa||'';g('pfAporte').value=pf.aporte||'';g('pfRendaApos').value=pf.rendaApos||'';g('pfRetorno').value=pf.retorno||5.86;g('pfPatrimonio').value=pf.patrimonio||(pat>0?pat:'');atualizaHint();}
+function calcPF(){const c=clients.find(x=>x.id===currentId);if(!c)return;const idade=Number(g('pfIdade').value),expVida=Number(g('pfExpVida').value),idadeApos=Number(g('pfIdadeApos').value);const renda=Number(g('pfRenda').value),despesa=Number(g('pfDespesa').value),am=Number(g('pfAporte').value);const ra=Number(g('pfRendaApos').value),ret=Number(g('pfRetorno').value)/100,pa=Number(g('pfPatrimonio').value);if(!idade||!idadeApos||!ra){showToast('Preencha campos obrigatórios.');return;}if(idadeApos<=idade){showToast('Aposentadoria deve ser após a idade atual.');return;}const sobra=renda-despesa,au=am>0?am:Math.max(0,sobra),ami=am>0;c.pf={idade,expVida,idadeApos,renda,despesa,aporte:am,rendaApos:ra,retorno:Number(g('pfRetorno').value),patrimonio:pa};persist();const anos=idadeApos-idade,r=ret,rm=r/12,ma=anos*12,mp=(expVida-idadeApos)*12;const fv=pa*Math.pow(1+r,anos)+(au>0?au*(Math.pow(1+rm,ma)-1)/rm:0);const rs=fv*rm,pp=ra/rm,pc2=ra*(1-Math.pow(1+rm,-mp))/rm;const labels=[],d1=[],d2=[],d3=[];let p1=pa,p2=pa;for(let a=idade;a<=expVida;a++){labels.push(a+' anos');const isA=a<idadeApos;p1=p1*(1+r)+(isA?au*12:-ra*12);d1.push(Math.round(Math.max(0,p1)));if(a===idadeApos)p2=fv;if(a>=idadeApos)p2=Math.max(0,p2*(1+r)-ra*12);d2.push(Math.round(p2));d3.push(Math.round(pp));}let dc,dt,dx;if(fv>=pp){dc='diag-ok';dt='Preservação garantida';dx=`Com ${fmtBRL(au,0)}/mês, patrimônio de ${fmtM(fv)} gera ${fmtBRL(rs,0)}/mês sem consumir o principal.`;}else if(fv>=pc2){dc='diag-warn';dt='Adequado — consumindo patrimônio';dx=`${fmtM(fv)} sustentará ${fmtBRL(ra,0)}/mês até os ${expVida} anos.`;}else{dc='diag-bad';dt='Ajuste necessário';dx=`Projetado ${fmtM(fv)} não cobrirá ${fmtBRL(ra,0)}/mês até os ${expVida} anos.`;}g('pf-diag').className=`diag-card ${dc}`;g('pf-diag').innerHTML=`<div class="diag-title">${dt}</div><div class="diag-text">${dx}</div>`;g('pr-renda-m').textContent=fmtBRL(renda,0)+'/mês';g('pr-desp-m').textContent=fmtBRL(despesa,0)+'/mês';g('pr-sobra').textContent=`${fmtBRL(sobra,0)}/mês`;g('pr-aporte-lbl').textContent=ami?'Aporte manual':'Aporte automático (sobra)';g('pr-aporte').textContent=fmtBRL(au,0)+'/mês';const pct=renda>0?Math.min(100,Math.round((au/renda)*100)):0;g('pr-aporte-pct-txt').textContent=`${pct}% da renda`;const be=g('pr-bar');be.style.width=pct+'%';be.className='pbar '+(pct>=30?'bar-ok':pct>=10?'bar-warn':'bar-bad');g('pr-pat').textContent=fmtM(fv);g('pr-anos').textContent=anos+' anos';g('pr-renda-sust').textContent=fmtBRL(rs,0)+'/mês';g('pr-formula-sust').innerHTML=`${fmtM(fv)} × ${(rm*100).toFixed(3)}%/mês`;g('pr-min').textContent=fmtM(pc2);g('pr-formula-min').innerHTML=`VP de ${fmtBRL(ra,0)}/mês por ${mp} meses`;g('pr-pres').textContent=fmtM(pp);g('pr-formula-pres').innerHTML=`${fmtBRL(ra,0)} ÷ ${(rm*100).toFixed(3)}%/mês`;if(projChartObj)projChartObj.destroy();projChartObj=new Chart(g('projChart').getContext('2d'),{type:'line',data:{labels,datasets:[{label:'Projeção',data:d1,borderColor:'#378ADD',backgroundColor:'transparent',borderWidth:2,pointRadius:0,pointHoverRadius:5,tension:.3},{label:'Preservação',data:d3,borderColor:'#1D9E75',backgroundColor:'transparent',borderWidth:1.5,borderDash:[4,3],pointRadius:0,tension:.3},{label:'Consumo',data:d2,borderColor:'#EF9F27',backgroundColor:'transparent',borderWidth:1.5,borderDash:[2,3],pointRadius:0,tension:.3}]},options:{responsive:true,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{callbacks:{title:t=>`Idade: ${t[0].label}`,label:t=>`${t.dataset.label}: ${fmtM(t.raw)}`}}},scales:{x:{ticks:{font:{size:10},color:'#888',maxTicksLimit:15},grid:{display:false}},y:{ticks:{font:{size:11},color:'#888',callback:v=>fmtM(v)},grid:{color:'rgba(0,0,0,0.05)'}}}}});const steps=[{t:'Origem do aporte',d:ami?`Manual: <strong>${fmtBRL(au,0)}/mês</strong>. Sobra disponível: ${fmtBRL(sobra,0)}/mês.`:`Automático: <strong>${fmtBRL(au,0)}/mês</strong>.`},{t:'Renda sustentável',d:`${fmtM(fv)} × ${(r*100).toFixed(2)}% a.a. = <strong>${fmtBRL(rs,0)}/mês</strong>.`},{t:'Valores em termos reais',d:'Tudo descontado pela inflação.'},{t:'Horizonte',d:`<strong>${anos} anos</strong> de acumulação → <strong>${expVida-idadeApos} anos</strong> de uso.`}];g('pf-steps').innerHTML=steps.map((s,i)=>`<div class="step-row"><div class="step-num">${i+1}</div><div><div class="step-text">${s.t}</div><div class="step-sub">${s.d}</div></div></div>`).join('');g('pf-form-wrap').style.display='none';g('pf-result').style.display='';renderProgress(c);renderPlanTabs('principal');}
+
+// BENCHMARK
+function bmGet(){const c=clients.find(x=>x.id===currentId);if(!c.benchmark)c.benchmark={classes:[],periodos:[],periodoSel:null};return c.benchmark;}
+function bmShowClasseForm(id){bmEditingClasseId=id;if(id){const bm=bmGet();const cl=bm.classes.find(x=>x.id===id);g('bm_classeFormTitle').textContent='Editar';g('bm_nome').value=cl.nome||'';g('bm_peso').value=cl.peso||'';g('bm_bench').value=cl.bench||'CDI';g('bm_benchCustom').value=cl.benchCustom||'';}else{g('bm_classeFormTitle').textContent='Nova classe';g('bm_nome').value='';g('bm_peso').value='';g('bm_bench').value='CDI';g('bm_benchCustom').value='';}g('bm_classeForm').style.display='';}
+function bmCancelClasseForm(){bmEditingClasseId=null;g('bm_classeForm').style.display='none';}
+async function bmSaveClasse(){const nome=g('bm_nome').value.trim();if(!nome){showToast('Informe o nome.');return;}const peso=Number(g('bm_peso').value)||0;const benchSel=g('bm_bench').value;const bench=benchSel==='Outro'?(g('bm_benchCustom').value.trim()||'Personalizado'):benchSel;const bm=bmGet();if(bmEditingClasseId){const idx=bm.classes.findIndex(x=>x.id===bmEditingClasseId);if(idx>=0)bm.classes[idx]={...bm.classes[idx],nome,peso,bench};}else bm.classes.push({id:Date.now().toString(),nome,peso,bench});bmEditingClasseId=null;await persist();bmCancelClasseForm();bmRender();showToast('Classe salva!');}
+async function bmDeleteClasse(id){const bm=bmGet();bm.classes=bm.classes.filter(x=>x.id!==id);bm.periodos=bm.periodos.map(p=>({...p,linhas:(p.linhas||[]).filter(l=>l.classeId!==id)}));await persist();bmRender();}
+function bmShowPeriodoForm(){const bm=bmGet();g('bm_periodoForm').style.display='';const now=new Date();g('bm_periodoNome').value=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');g('bm_periodoLinhas').innerHTML=bm.classes.map(c=>`<div style="display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:10px;margin-bottom:10px;align-items:end;"><div style="font-size:13px;font-weight:500;">${c.nome} <span style="font-size:11px;color:#666;">${c.peso}% · ${c.bench}</span></div><div class="form-group"><label>Rent. real (%)</label><input id="bpl_r_${c.id}" type="number" step="0.01" placeholder="1.20"/></div><div class="form-group"><label>${c.bench} (%)</label><input id="bpl_b_${c.id}" type="number" step="0.01" placeholder="1.07"/></div></div><hr style="border:none;border-top:1px solid var(--border);margin:4px 0 10px;"/>`).join('');}
+function bmCancelPeriodoForm(){g('bm_periodoForm').style.display='none';}
+async function bmSavePeriodo(){const nome=g('bm_periodoNome').value;if(!nome){showToast('Informe o período.');return;}const bm=bmGet();const linhas=bm.classes.map(c=>({classeId:c.id,rentReal:Number(g('bpl_r_'+c.id)?.value)||0,rentBench:Number(g('bpl_b_'+c.id)?.value)||0}));const idx=bm.periodos.findIndex(p=>p.nome===nome);if(idx>=0)bm.periodos[idx]={...bm.periodos[idx],linhas};else bm.periodos.push({id:Date.now().toString(),nome,linhas});bm.periodoSel=nome;await persist();bmCancelPeriodoForm();bmRender();showToast('Salvo!');}
+async function bmDeletePeriodo(nome){const bm=bmGet();bm.periodos=bm.periodos.filter(p=>p.nome!==nome);if(bm.periodoSel===nome)bm.periodoSel=bm.periodos.length?bm.periodos[bm.periodos.length-1].nome:null;await persist();bmRender();}
+function bmSelectPeriodo(nome){bmGet().periodoSel=nome;persist();bmRender();}
+function bmRender(){const bm=bmGet();const hasC=bm.classes.length>0;g('bm_empty').style.display=hasC?'none':'';g('bm_content').style.display=hasC?'':'none';if(!hasC)return;const pesoTot=bm.classes.reduce((s,c)=>s+Number(c.peso||0),0);g('bm_pesoTotal').textContent=`Peso total: ${pesoTot.toFixed(1)}%${Math.abs(pesoTot-100)>0.1?' ⚠':''}`;const tabsEl=g('bm_periodoTabs');if(!bm.periodos.length){tabsEl.innerHTML='<span style="font-size:12px;color:#666;">Nenhum período.</span>';}else{const sorted=bm.periodos.slice().sort((a,b)=>a.nome>b.nome?1:-1);tabsEl.innerHTML=sorted.map(p=>`<div style="display:inline-flex;align-items:center;gap:3px;"><button class="ptab ${bm.periodoSel===p.nome?'active':''}" onclick="bmSelectPeriodo('${p.nome}')">${fmtMes(p.nome)}</button><button onclick="bmDeletePeriodo('${p.nome}')" style="background:none;border:none;cursor:pointer;font-size:13px;color:#666;padding:2px 4px;">×</button></div>`).join('');}const periodo=bm.periodos.find(p=>p.nome===bm.periodoSel);let tReal=0,tBench=0;const rows=bm.classes.map(c=>{const l=periodo?(periodo.linhas||[]).find(x=>x.classeId===c.id):null;const rR=l?l.rentReal:null;const rB=l?l.rentBench:null;const alpha=rR!==null&&rB!==null?rR-rB:null;const peso=Number(c.peso||0);if(rR!==null)tReal+=rR*(peso/100);if(rB!==null)tBench+=rB*(peso/100);const statusChip=alpha===null?'—':alpha>0?'<span class="alpha-chip alpha-up">▲</span>':'<span class="alpha-chip alpha-down">▼</span>';const alphaFmt=alpha===null?'—':`<strong style="color:${alpha>0?'#2e7d32':alpha<0?'#c62828':'#666'};">${fmtA(alpha)}</strong>`;return`<tr><td><div style="font-weight:500;">${c.nome}</div><div style="display:flex;align-items:center;margin-top:3px;"><div class="peso-bar-bg"><div class="peso-bar-fill" style="width:${Math.min(100,peso)}%"></div></div><span style="font-size:11px;color:#666;margin-left:4px;">${peso}%</span></div></td><td><span class="bench-badge">${c.bench}</span></td><td class="num">${peso.toFixed(1)}%</td><td class="num">${rR!==null?fmtP(rR):'—'}</td><td class="num">${rB!==null?fmtP(rB):'—'}</td><td class="num">${alphaFmt}</td><td class="num">${statusChip}</td><td style="text-align:right;white-space:nowrap;"><button class="btn sm" style="margin-right:4px;" onclick="bmShowClasseForm('${c.id}')">Ed.</button><button class="btn sm danger" onclick="bmDeleteClasse('${c.id}')">×</button></td></tr>`;});const hasDados=!!periodo;const totalAlpha=tReal-tBench;rows.push(`<tr class="bench-total"><td colspan="2">Total ponderado</td><td class="num">${pesoTot.toFixed(1)}%</td><td class="num">${hasDados?`<strong>${fmtP(tReal)}</strong>`:'—'}</td><td class="num">${hasDados?`<strong>${fmtP(tBench)}</strong>`:'—'}</td><td class="num"><strong style="color:${totalAlpha>0?'#2e7d32':totalAlpha<0?'#c62828':'#666'};">${hasDados?fmtA(totalAlpha):'—'}</strong></td><td colspan="2"></td></tr>`);g('bm_classeBody').innerHTML=rows.join('');if(!periodo){g('bm_resumo').style.display='none';}else{g('bm_resumo').style.display='';g('bm_rReal').textContent=fmtP(tReal);g('bm_rReal').style.color=tReal>=0?'#2e7d32':'#c62828';g('bm_rBench').textContent=fmtP(tBench);g('bm_rAlpha').textContent=fmtA(totalAlpha);g('bm_rAlpha').style.color=totalAlpha>0?'#2e7d32':totalAlpha<0?'#c62828':'#666';const hero=g('bm_alphaHero');hero.textContent=fmtA(totalAlpha);hero.className='alpha-hero '+(totalAlpha>0?'up':totalAlpha<0?'down':'zero');g('bm_alphaMsg').textContent=totalAlpha>0?'Acima do benchmark':totalAlpha<0?'Abaixo do benchmark':'No nível do benchmark';g('bm_alphaSub').textContent=totalAlpha>0?`Alpha de ${fmtA(totalAlpha)}.`:totalAlpha<0?`Ficou ${fmtA(totalAlpha)}.`:'Igual ao benchmark.';}if(bmChartObj){bmChartObj.destroy();bmChartObj=null;}if(!bm.periodos.length)return;const sorted=bm.periodos.slice().sort((a,b)=>a.nome>b.nome?1:-1);let acR=100,acB=100;const dR=[],dB=[];sorted.forEach(p=>{let r=0,b=0;(p.linhas||[]).forEach(l=>{const cl=bm.classes.find(x=>x.id===l.classeId);if(!cl)return;const w=Number(cl.peso||0)/100;r+=l.rentReal*w;b+=l.rentBench*w;});acR*=(1+r/100);acB*=(1+b/100);dR.push(Number(acR.toFixed(4)));dB.push(Number(acB.toFixed(4)));});bmChartObj=new Chart(g('bm_chart').getContext('2d'),{type:'line',data:{labels:sorted.map(p=>fmtMes(p.nome)),datasets:[{label:'Carteira',data:dR,borderColor:'#378ADD',backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:.3},{label:'Benchmark',data:dB,borderColor:'#EF9F27',backgroundColor:'transparent',borderWidth:1.5,borderDash:[4,3],pointRadius:3,tension:.3}]},options:{responsive:true,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${(c.raw-100).toFixed(2)}% acum.`}}},scales:{x:{ticks:{font:{size:11},color:'#888'},grid:{display:false}},y:{ticks:{font:{size:11},color:'#888',callback:v=>`${(v-100).toFixed(1)}%`},grid:{color:'rgba(0,0,0,0.05)'}}}}});}
+
+// RENT
+function showRentForm(id){editingRentId=id||null;const c=clients.find(x=>x.id===currentId);if(id){const r=(c.rents||[]).find(x=>x.id===id);g('rentFormTitle').textContent='Editar';g('rMes').value=r.mes||'';g('rRent').value=r.rent||'';g('rPat').value=r.pat||'';g('rObs').value=r.obs||'';}else{g('rentFormTitle').textContent='Novo';const now=new Date();g('rMes').value=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');g('rRent').value='';g('rPat').value='';g('rObs').value='';}g('rentFormWrap').style.display='';}
+function cancelRentForm(){editingRentId=null;g('rentFormWrap').style.display='none';}
+function saveRent(){const mes=g('rMes').value;const rent=g('rRent').value;if(!mes||rent===''){showToast('Informe mês e rentabilidade.');return;}const c=clients.find(x=>x.id===currentId);if(!c.rents)c.rents=[];const d={mes,rent:Number(rent),pat:Number(g('rPat').value)||0,obs:g('rObs').value.trim()};if(editingRentId){const idx=c.rents.findIndex(x=>x.id===editingRentId);if(idx>=0)c.rents[idx]={...c.rents[idx],...d};}else c.rents.push({id:Date.now().toString(),...d});editingRentId=null;persist();renderRentTable(c);cancelRentForm();showToast('Salvo!');}
+function renderRentTable(c){const pf=c.pf||{};const ma=pf.retorno||5.86;const mm=((1+ma/100)**(1/12)-1)*100;const rents=(c.rents||[]).slice().sort((a,b)=>a.mes>b.mes?1:-1);g('rentSummary').style.display=rents.length?'':'none';if(rents.length){const media=rents.reduce((s,r)=>s+r.rent,0)/rents.length;g('rs-media').textContent=media.toFixed(2)+'%';g('rs-meta').textContent=mm.toFixed(3)+'%';g('rs-acima').textContent=rents.filter(r=>r.rent>=mm).length+' / '+rents.length;}const body=g('rentBody');if(!rents.length){body.innerHTML=`<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:#666;">Nenhum registro.</td></tr>`;if(rentChartObj){rentChartObj.destroy();rentChartObj=null;}return;}body.innerHTML=rents.map(r=>{const diff=r.rent-mm;return`<tr><td>${fmtMes(r.mes)}</td><td class="num">${r.rent.toFixed(2)}%</td><td class="num">${r.rent>=mm?`<span class="chip-ok">+${diff.toFixed(2)}%</span>`:`<span class="chip-bad">${diff.toFixed(2)}%</span>`}</td><td class="num">${r.pat>0?fmtM(r.pat):'—'}</td><td style="color:#666;font-size:12px;">${r.obs||'—'}</td><td style="text-align:right;"><button class="btn sm" onclick="showRentForm('${r.id}')">Ed.</button> <button class="btn sm danger" onclick="deleteRent('${r.id}')">×</button></td></tr>`;}).join('');if(rentChartObj)rentChartObj.destroy();rentChartObj=new Chart(g('rentChart').getContext('2d'),{type:'bar',data:{labels:rents.map(r=>fmtMes(r.mes)),datasets:[{label:'Rent.',data:rents.map(r=>Number(r.rent.toFixed(3))),backgroundColor:rents.map(r=>r.rent>=mm?'#1D9E75':'#D85A30'),borderRadius:4},{label:'Meta',data:rents.map(()=>Number(mm.toFixed(3))),type:'line',borderColor:'#378ADD',backgroundColor:'transparent',borderWidth:1.5,borderDash:[4,3],pointRadius:0}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:11},color:'#888'},grid:{display:false}},y:{ticks:{font:{size:11},color:'#888',callback:v=>v+'%'},grid:{color:'rgba(0,0,0,0.05)'}}}}});}
+function deleteRent(id){const c=clients.find(x=>x.id===currentId);c.rents=(c.rents||[]).filter(x=>x.id!==id);persist();renderRentTable(c);}
+
+// APORTES
+function showAporteForm(id){editingAporteId=id||null;const c=clients.find(x=>x.id===currentId);if(id){const a=(c.aportes||[]).find(x=>x.id===id);g('aporteFormTitle').textContent='Editar';g('apMes').value=a.mes||'';g('apValor').value=a.valor||'';g('apTipo').value=a.tipo||'regular';g('apObs').value=a.obs||'';}else{g('aporteFormTitle').textContent='Novo';const now=new Date();g('apMes').value=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');g('apValor').value='';g('apTipo').value='regular';g('apObs').value='';}g('aporteFormWrap').style.display='';}
+function cancelAporteForm(){editingAporteId=null;g('aporteFormWrap').style.display='none';}
+function saveAporte(){const mes=g('apMes').value;if(!mes){showToast('Informe o mês.');return;}const c=clients.find(x=>x.id===currentId);if(!c.aportes)c.aportes=[];const d={mes,valor:Number(g('apValor').value)||0,tipo:g('apTipo').value,obs:g('apObs').value.trim()};if(editingAporteId){const idx=c.aportes.findIndex(x=>x.id===editingAporteId);if(idx>=0)c.aportes[idx]={...c.aportes[idx],...d};}else c.aportes.push({id:Date.now().toString(),...d});editingAporteId=null;persist();renderAporteTable(c);cancelAporteForm();showToast('Salvo!');}
+function renderAporteTable(c){const pf=c.pf||{};const mm=pf.aporte>0?pf.aporte:Math.max(0,(pf.renda||0)-(pf.despesa||0));const aportes=(c.aportes||[]).slice().sort((a,b)=>a.mes>b.mes?1:-1);g('aporteSummary').style.display=aportes.length?'':'none';if(aportes.length){const total=aportes.reduce((s,a)=>s+a.valor,0);const pace=aportes.filter(a=>a.valor>=mm*0.95).length;g('as-total').textContent=fmtBRL(total);g('as-media').textContent=fmtBRL(total/aportes.length,0)+'/mês';g('as-pace').textContent=pace+' / '+aportes.length;}const body=g('aporteBody');if(!aportes.length){body.innerHTML=`<tr><td colspan="7" style="text-align:center;padding:1.5rem;color:#666;">Nenhum aporte.</td></tr>`;if(aporteChartObj){aporteChartObj.destroy();aporteChartObj=null;}return;}const tl={regular:'Regular',extra:'Extra',parcial:'Parcial',sem_aporte:'Sem aporte'};body.innerHTML=aportes.map(a=>{const ok=a.valor>=mm*0.95;const chip=mm>0?(ok?`<span class="chip-ok">No pace</span>`:(a.valor===0?`<span class="chip-bad">Sem aporte</span>`:`<span class="chip-warn">-${fmtBRL(Math.abs(a.valor-mm),0)}</span>`)):'—';return`<tr><td>${fmtMes(a.mes)}</td><td class="num">${fmtBRL(a.valor,0)}</td><td class="num">${mm>0?fmtBRL(mm,0):'—'}</td><td class="num">${chip}</td><td style="font-size:12px;color:#666;">${tl[a.tipo]||a.tipo}</td><td style="font-size:12px;color:#666;">${a.obs||'—'}</td><td style="text-align:right;"><button class="btn sm" onclick="showAporteForm('${a.id}')">Ed.</button> <button class="btn sm danger" onclick="deleteAporte('${a.id}')">×</button></td></tr>`;}).join('');if(aporteChartObj)aporteChartObj.destroy();const ds=[{label:'Aportado',data:aportes.map(a=>a.valor),backgroundColor:aportes.map(a=>a.valor>=mm*0.95?'#1D9E75':'#EF9F27'),borderRadius:4}];if(mm>0)ds.push({label:'Meta',data:aportes.map(()=>mm),type:'line',borderColor:'#378ADD',backgroundColor:'transparent',borderWidth:1.5,borderDash:[4,3],pointRadius:0});aporteChartObj=new Chart(g('aporteChart').getContext('2d'),{type:'bar',data:{labels:aportes.map(a=>fmtMes(a.mes)),datasets:ds},options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:11},color:'#888'},grid:{display:false}},y:{ticks:{font:{size:11},color:'#888',callback:v=>fmtM(v)},grid:{color:'rgba(0,0,0,0.05)'}}}}});}
+function deleteAporte(id){const c=clients.find(x=>x.id===currentId);c.aportes=(c.aportes||[]).filter(x=>x.id!==id);persist();renderAporteTable(c);}
+
+function renderPie(ativos){const canvas=g('pieChart');const ctx=canvas.getContext('2d');ctx.clearRect(0,0,120,120);const legend=g('pieLegend');if(!ativos.length){ctx.fillStyle='rgba(128,128,128,0.15)';ctx.beginPath();ctx.arc(60,60,52,0,Math.PI*2);ctx.fill();legend.innerHTML='<span style="font-size:12px;color:#666">Nenhum ativo</span>';return;}const grouped={};ativos.forEach(a=>{const t=a.tipo||'Outro';grouped[t]=(grouped[t]||0)+Number(a.valor||0);});const total=Object.values(grouped).reduce((s,v)=>s+v,0);const entries=Object.entries(grouped).sort((a,b)=>b[1]-a[1]);let start=-Math.PI/2;entries.forEach(([,val],i)=>{const slice=(val/total)*Math.PI*2;ctx.beginPath();ctx.moveTo(60,60);ctx.arc(60,60,52,start,start+slice);ctx.closePath();ctx.fillStyle=COLORS[i%COLORS.length];ctx.fill();start+=slice;});ctx.beginPath();ctx.arc(60,60,28,0,Math.PI*2);ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--bg')||'#fff';ctx.fill();legend.innerHTML=entries.map(([tipo,val],i)=>`<div class="legend-item"><div class="legend-dot" style="background:${COLORS[i%COLORS.length]}"></div><span>${TIPO_LABELS[tipo]||tipo}</span><span class="legend-pct">${((val/total)*100).toFixed(1)}%</span></div>`).join('');}
+function renderAssetTable(ativos){const total=ativos.reduce((s,a)=>s+Number(a.valor||0),0);const body=g('assetBody');if(!ativos.length){body.innerHTML=`<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:#666;">Nenhum ativo.</td></tr>`;return;}body.innerHTML=ativos.map(a=>{const pct=total>0?((Number(a.valor)/total)*100).toFixed(1)+'%':'—';return`<tr><td><div style="font-weight:500;">${a.nome}</div>${a.obs?'<div style="font-size:11px;color:#666;margin-top:2px;">'+a.obs+'</div>':''}</td><td><span class="tipo-badge tipo-${a.tipo||'Outro'}">${a.tipo||'Outro'}</span></td><td style="color:#666;">${a.instit||'—'}</td><td class="num">${fmtBRL(a.valor)}</td><td class="num" style="color:#666;">${pct}</td><td style="text-align:right;"><button class="btn sm" style="margin-right:4px;" onclick="editAsset('${a.id}')">Ed.</button><button class="btn sm danger" onclick="deleteAsset('${a.id}')">×</button></td></tr>`;}).join('')+`<tr class="total-row"><td colspan="3">Total</td><td class="num">${fmtBRL(total)}</td><td class="num">100%</td><td></td></tr>`;}
+function showAssetForm(){editingAssetId=null;g('assetFormTitle').textContent='Novo ativo';['aNome','aInstit','aObs'].forEach(id=>g(id).value='');g('aValor').value='';g('aTipo').value='RF';g('assetFormWrap').style.display='';}
+function editAsset(id){const c=clients.find(x=>x.id===currentId);const a=(c.ativos||[]).find(x=>x.id===id);if(!a)return;editingAssetId=id;g('assetFormTitle').textContent='Editar ativo';g('aNome').value=a.nome||'';g('aTipo').value=a.tipo||'RF';g('aValor').value=a.valor||'';g('aInstit').value=a.instit||'';g('aObs').value=a.obs||'';g('assetFormWrap').style.display='';}
+function cancelAssetForm(){editingAssetId=null;g('assetFormWrap').style.display='none';}
+async function saveAsset(){const nome=g('aNome').value.trim();const valor=g('aValor').value;if(!nome||!valor){showToast('Informe nome e valor.');return;}const c=clients.find(x=>x.id===currentId);if(!c.ativos)c.ativos=[];const d={nome,tipo:g('aTipo').value,valor:Number(valor),instit:g('aInstit').value.trim(),obs:g('aObs').value.trim()};if(editingAssetId){const idx=c.ativos.findIndex(a=>a.id===editingAssetId);if(idx>=0)c.ativos[idx]={...c.ativos[idx],...d};}else c.ativos.push({id:Date.now().toString(),...d});editingAssetId=null;await persist();const total=c.ativos.reduce((s,a)=>s+Number(a.valor),0);g('dPatrimonio').textContent=fmtBRL(total);g('dNAtivos').textContent=c.ativos.length;renderPie(c.ativos);renderAssetTable(c.ativos);renderProgress(c);cancelAssetForm();showToast('Salvo!');}
+async function deleteAsset(id){const c=clients.find(x=>x.id===currentId);c.ativos=(c.ativos||[]).filter(a=>a.id!==id);await persist();const total=c.ativos.length?c.ativos.reduce((s,a)=>s+Number(a.valor),0):0;g('dPatrimonio').textContent=c.ativos.length?fmtBRL(total):'—';g('dNAtivos').textContent=c.ativos.length;renderPie(c.ativos);renderAssetTable(c.ativos);renderProgress(c);}
+
+function switchDashTab(tab){const tabs=['visao','ativos','planejamento','benchmark','rentabilidade','aportes'];document.querySelectorAll('.dash-tab').forEach((el,i)=>el.classList.toggle('active',tabs[i]===tab));document.querySelectorAll('.dash-section').forEach(s=>s.classList.remove('active'));g('dt-'+tab).classList.add('active');if(tab==='benchmark')bmRender();if(tab==='planejamento')renderPlanTabs(activeProjSubId||'principal');}
+function renderList(){const total=clients.length;const ativos=clients.filter(c=>c.status==='ativo').length;g('mTotal').textContent=total;g('mAtivos').textContent=ativos;g('mInativos').textContent=total-ativos;const grid=g('clientGrid');if(!total){grid.innerHTML='<div class="empty">Nenhum cliente ainda.<br>Clique em <strong>+ Novo cliente</strong> para começar.</div>';return;}grid.innerHTML=clients.map(c=>{const totalAt=(c.ativos||[]).reduce((s,a)=>s+Number(a.valor||0),0);const nAt=(c.ativos||[]).length;return`<div class="client-card" onclick="openDash('${c.id}')"><div class="avatar">${initials(c.nome)}</div><div class="client-info"><div class="client-name">${c.nome}</div><div class="client-sub">${nAt} ativo${nAt!==1?'s':''} · ${totalAt>0?fmtBRL(totalAt):'sem patrimônio'}</div></div><span class="badge ${c.status||'ativo'}">${c.status||'ativo'}</span><span style="font-size:16px;color:#999;">›</span></div>`;}).join('');}
+function persist(){try{localStorage.setItem('clients_v1',JSON.stringify(clients));}catch(e){}}
+function loadData(){try{const k=localStorage.getItem('fp_apikey');if(k&&k.startsWith('sk-ant-')){apiKey=k;const b=g('apiBanner');b.className='apikey-banner ok';b.innerHTML=`<div style="font-size:18px;">✓</div><div style="flex:1;"><div style="font-size:13px;font-weight:500;color:#2e7d32;">Chave da API configurada</div><div style="font-size:12px;color:#666;">Importação ativa</div></div><button class="btn sm" onclick="clearApiKey()">Remover</button>`;}}catch(e){}try{const r=localStorage.getItem('clients_v1');if(r)clients=JSON.parse(r);}catch(e){clients=[];}clients.forEach(c=>{if(!c.ativos)c.ativos=[];if(!c.objetivos)c.objetivos=[];if(!c.pf)c.pf={};if(!c.rents)c.rents=[];if(!c.aportes)c.aportes=[];if(!c.benchmark)c.benchmark={classes:[],periodos:[],periodoSel:null};if(!c.projetos)c.projetos=[];});renderList();}
+loadData();
+</script>
+</body>
+</html>
