@@ -600,7 +600,21 @@ async function handleFile(file){
 
 function parseJSON(raw){const c=raw.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();try{return JSON.parse(c);}catch(e){const m=c.match(/\{[\s\S]*\}/);if(m)return JSON.parse(m[0]);throw new Error('Não foi possível interpretar o retorno.');}}
 function renderImportPreview(raw){let p;try{p=parseJSON(raw);}catch(e){showToast('Erro: '+e.message);return;}importedData=p;const ativos=p.ativos||[];const pat=p.patrimonio_total||ativos.reduce((s,a)=>s+(a.valor||0),0);const rent=p.rentabilidade_periodo;g('importSummaryBox').innerHTML=`<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;"><div class="metric" style="flex:1;min-width:100px;"><div class="metric-label">Patrimônio</div><div class="metric-value" style="font-size:16px;">${fmtM(pat)}</div></div>${rent?`<div class="metric" style="flex:1;min-width:100px;"><div class="metric-label">Rentabilidade</div><div class="metric-value" style="font-size:16px;">${Number(rent).toFixed(2)}%</div></div>`:''}<div class="metric" style="flex:1;min-width:100px;"><div class="metric-label">Ativos</div><div class="metric-value" style="font-size:16px;">${ativos.length}</div></div></div>`;g('importItems').innerHTML=ativos.map((a,i)=>`<div class="import-item"><div class="import-check">✓</div><div style="flex:1;font-weight:500;">${a.nome||'Ativo '+(i+1)}</div><span class="tipo-badge tipo-${a.tipo||'Outro'}">${a.tipo||'Outro'}</span>${a.instituicao?`<span style="font-size:12px;color:#666;">${a.instituicao}</span>`:''}<div style="font-weight:500;">${fmtBRL(a.valor||0)}</div></div>`).join('');g('importPreview').style.display='';}
-async function confirmImport(){if(!importedData)return;const c=clients.find(x=>x.id===currentId);if(!c)return;c.ativos=(importedData.ativos||[]).map(a=>({id:Date.now().toString()+Math.random(),nome:a.nome||'Ativo',tipo:a.tipo||'Outro',valor:Number(a.valor)||0,instit:a.instituicao||'',obs:''}));const rent=importedData.rentabilidade_periodo;if(rent){if(!c.rents)c.rents=[];const now=new Date();const mes=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');c.rents.push({id:Date.now().toString(),mes,rent:Number(rent),pat:importedData.patrimonio_total||0,obs:'Importado'});}await persist();const total=c.ativos.reduce((s,a)=>s+a.valor,0);g('dPatrimonio').textContent=fmtBRL(total);g('dNAtivos').textContent=c.ativos.length;renderPie(c.ativos);renderAssetTable(c.ativos);renderRentTable(c);renderProgress(c);g('importWrap').style.display='none';cancelImport();showToast(`${c.ativos.length} ativos importados!`);}
+async function confirmImport(){if(!importedData)return;const c=clients.find(x=>x.id===currentId);if(!c)return;const novosAtivos=importedData.ativos||[];
+let adicionados=0,atualizados=0;
+novosAtivos.forEach(a=>{
+  const nomeNorm=(a.nome||'').toLowerCase().trim();
+  const institNorm=(a.instituicao||'').toLowerCase().trim();
+  const existente=c.ativos.find(x=>x.nome.toLowerCase().trim()===nomeNorm&&x.instit.toLowerCase().trim()===institNorm);
+  if(existente){
+    existente.valor=Number(a.valor)||0;
+    existente.tipo=a.tipo||existente.tipo;
+    atualizados++;
+  }else{
+    c.ativos.push({id:Date.now().toString()+Math.random(),nome:a.nome||'Ativo',tipo:a.tipo||'Outro',valor:Number(a.valor)||0,instit:a.instituicao||'',obs:''});
+    adicionados++;
+  }
+});;const rent=importedData.rentabilidade_periodo;if(rent){if(!c.rents)c.rents=[];const now=new Date();const mes=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');c.rents.push({id:Date.now().toString(),mes,rent:Number(rent),pat:importedData.patrimonio_total||0,obs:'Importado'});}await persist();const total=c.ativos.reduce((s,a)=>s+a.valor,0);g('dPatrimonio').textContent=fmtBRL(total);g('dNAtivos').textContent=c.ativos.length;renderPie(c.ativos);renderAssetTable(c.ativos);renderRentTable(c);renderProgress(c);g('importWrap').style.display='none';cancelImport()showToast(`${adicionados} adicionados, ${atualizados} atualizados!`);}
 function cancelImport(){importedData=null;g('importPreview').style.display='none';g('importStatus').style.display='none';}
 
 // CLIENTES
