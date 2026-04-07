@@ -295,7 +295,20 @@ input.highlight{border-color:var(--info-border);background:var(--info-bg);}
       <div class="form-actions"><button class="btn" onclick="cancelAssetForm()">Cancelar</button><button class="btn primary" onclick="saveAsset()">Salvar</button></div>
     </div>
     <div class="card" style="padding:.5rem 0;overflow-x:auto;">
-      <table class="asset-table"><thead><tr><th>Ativo</th><th>Tipo</th><th>Instituição</th><th class="num">Valor (R$)</th><th class="num">%</th><th></th></tr></thead><tbody id="assetBody"></tbody></table>
+      <!-- Seletor de view -->
+      <div style="display:flex;gap:6px;margin-bottom:12px;">
+        <button class="ptab active" id="viewTabCarteira" onclick="switchAssetView('carteira')">Carteira completa</button>
+        <button class="ptab" id="viewTabClasse" onclick="switchAssetView('classe')">Por classe</button>
+        <button class="ptab" id="viewTabInstit" onclick="switchAssetView('instit')">Por instituição</button>
+      </div>
+      <!-- View: carteira completa -->
+      <div id="assetViewCarteira">
+        <table class="asset-table"><thead><tr><th>Ativo</th><th>Tipo</th><th>Instituição</th><th class="num">Valor (R$)</th><th class="num">% Total</th><th></th></tr></thead><tbody id="assetBody"></tbody></table>
+      </div>
+      <!-- View: por classe -->
+      <div id="assetViewClasse" style="display:none;" id="assetViewClasse"></div>
+      <!-- View: por instituição -->
+      <div id="assetViewInstit" style="display:none;"></div>
     </div>
   </div>
 
@@ -637,7 +650,113 @@ function renderAporteTable(c){const pf=c.pf||{};const mm=pf.aporte>0?pf.aporte:M
 function deleteAporte(id){const c=clients.find(x=>x.id===currentId);c.aportes=(c.aportes||[]).filter(x=>x.id!==id);persist();renderAporteTable(c);}
 
 function renderPie(ativos){const canvas=g('pieChart');const ctx=canvas.getContext('2d');ctx.clearRect(0,0,120,120);const legend=g('pieLegend');if(!ativos.length){ctx.fillStyle='rgba(128,128,128,0.15)';ctx.beginPath();ctx.arc(60,60,52,0,Math.PI*2);ctx.fill();legend.innerHTML='<span style="font-size:12px;color:#666">Nenhum ativo</span>';return;}const grouped={};ativos.forEach(a=>{const t=a.tipo||'Outro';grouped[t]=(grouped[t]||0)+Number(a.valor||0);});const total=Object.values(grouped).reduce((s,v)=>s+v,0);const entries=Object.entries(grouped).sort((a,b)=>b[1]-a[1]);let start=-Math.PI/2;entries.forEach(([,val],i)=>{const slice=(val/total)*Math.PI*2;ctx.beginPath();ctx.moveTo(60,60);ctx.arc(60,60,52,start,start+slice);ctx.closePath();ctx.fillStyle=COLORS[i%COLORS.length];ctx.fill();start+=slice;});ctx.beginPath();ctx.arc(60,60,28,0,Math.PI*2);ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--bg')||'#fff';ctx.fill();legend.innerHTML=entries.map(([tipo,val],i)=>`<div class="legend-item"><div class="legend-dot" style="background:${COLORS[i%COLORS.length]}"></div><span>${TIPO_LABELS[tipo]||tipo}</span><span class="legend-pct">${((val/total)*100).toFixed(1)}%</span></div>`).join('');}
-function renderAssetTable(ativos){const total=ativos.reduce((s,a)=>s+Number(a.valor||0),0);const body=g('assetBody');if(!ativos.length){body.innerHTML=`<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:#666;">Nenhum ativo.</td></tr>`;return;}body.innerHTML=ativos.map(a=>{const pct=total>0?((Number(a.valor)/total)*100).toFixed(1)+'%':'—';return`<tr><td><div style="font-weight:500;">${a.nome}</div>${a.obs?'<div style="font-size:11px;color:#666;margin-top:2px;">'+a.obs+'</div>':''}</td><td><span class="tipo-badge tipo-${a.tipo||'Outro'}">${a.tipo||'Outro'}</span></td><td style="color:#666;">${a.instit||'—'}</td><td class="num">${fmtBRL(a.valor)}</td><td class="num" style="color:#666;">${pct}</td><td style="text-align:right;"><button class="btn sm" style="margin-right:4px;" onclick="editAsset('${a.id}')">Ed.</button><button class="btn sm danger" onclick="deleteAsset('${a.id}')">×</button></td></tr>`;}).join('')+`<tr class="total-row"><td colspan="3">Total</td><td class="num">${fmtBRL(total)}</td><td class="num">100%</td><td></td></tr>`;}
+let currentAssetView='carteira';
+function switchAssetView(view){
+  currentAssetView=view;
+  ['carteira','classe','instit'].forEach(v=>{
+    const el=g('assetView'+v.charAt(0).toUpperCase()+v.slice(1));
+    if(el)el.style.display=v===view?'':'none';
+    const tab=g('viewTab'+v.charAt(0).toUpperCase()+v.slice(1));
+    if(tab)tab.classList.toggle('active',v===view);
+  });
+  const c=clients.find(x=>x.id===currentId);
+  if(c)renderAssetTable(c.ativos||[]);
+}
+function renderAssetTable(ativos){
+  const total=ativos.reduce((s,a)=>s+Number(a.valor||0),0);
+
+  // ── VIEW: Carteira completa ──────────────────────────────────
+  const body=g('assetBody');
+  if(!ativos.length){
+    body.innerHTML=`<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:#666;">Nenhum ativo.</td></tr>`;
+    g('assetViewClasse').innerHTML='<div style="text-align:center;padding:2rem;color:#666;">Nenhum ativo.</div>';
+    g('assetViewInstit').innerHTML='<div style="text-align:center;padding:2rem;color:#666;">Nenhum ativo.</div>';
+    return;
+  }
+  body.innerHTML=ativos.map(a=>{
+    const pct=total>0?((Number(a.valor)/total)*100).toFixed(1)+'%':'—';
+    return`<tr><td><div style="font-weight:500;">${a.nome}</div>${a.obs?'<div style="font-size:11px;color:#666;margin-top:2px;">'+a.obs+'</div>':''}</td><td><span class="tipo-badge tipo-${a.tipo||'Outro'}">${a.tipo||'Outro'}</span></td><td style="color:#666;">${a.instit||'—'}</td><td class="num">${fmtBRL(a.valor)}</td><td class="num" style="color:#666;">${pct}</td><td style="text-align:right;"><button class="btn sm" style="margin-right:4px;" onclick="editAsset('${a.id}')">Ed.</button><button class="btn sm danger" onclick="deleteAsset('${a.id}')">×</button></td></tr>`;
+  }).join('')+`<tr class="total-row"><td colspan="3">Total</td><td class="num">${fmtBRL(total)}</td><td class="num">100%</td><td></td></tr>`;
+
+  // ── VIEW: Por classe ─────────────────────────────────────────
+  const classes={};
+  ativos.forEach(a=>{const t=a.tipo||'Outro';if(!classes[t])classes[t]=[];classes[t].push(a);});
+  const classeOrdem=['RF','RV','FII','Previdência','Crypto','Outro'];
+  const classeSorted=classeOrdem.filter(k=>classes[k]).concat(Object.keys(classes).filter(k=>!classeOrdem.includes(k)));
+  const TIPO_LABELS_LOCAL={RF:'Renda Fixa',RV:'Renda Variável',FII:'FII',Crypto:'Crypto',Previdência:'Previdência',Outro:'Outro'};
+  let classeHTML='';
+  classeSorted.forEach(tipo=>{
+    const lista=classes[tipo];
+    const subtotal=lista.reduce((s,a)=>s+Number(a.valor||0),0);
+    const pctClasse=total>0?((subtotal/total)*100).toFixed(1):0;
+    classeHTML+=`
+      <div style="margin-bottom:1.25rem;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="tipo-badge tipo-${tipo}">${TIPO_LABELS_LOCAL[tipo]||tipo}</span>
+            <span style="font-size:12px;color:#666;">${lista.length} ativo${lista.length!==1?'s':''}</span>
+          </div>
+          <div style="text-align:right;">
+            <span style="font-size:14px;font-weight:500;">${fmtBRL(subtotal)}</span>
+            <span style="font-size:12px;color:#666;margin-left:8px;">${pctClasse}% da carteira</span>
+          </div>
+        </div>
+        <div style="height:5px;background:var(--border);border-radius:3px;margin-bottom:8px;overflow:hidden;">
+          <div style="height:5px;border-radius:3px;background:#378ADD;width:${pctClasse}%;"></div>
+        </div>
+        <table class="asset-table">
+          <thead><tr><th>Ativo</th><th>Instituição</th><th class="num">Valor (R$)</th><th class="num">% Classe</th><th class="num">% Total</th><th></th></tr></thead>
+          <tbody>
+            ${lista.map(a=>{
+              const pctT=total>0?((Number(a.valor)/total)*100).toFixed(1)+'%':'—';
+              const pctC=subtotal>0?((Number(a.valor)/subtotal)*100).toFixed(1)+'%':'—';
+              return`<tr><td><div style="font-weight:500;">${a.nome}</div>${a.obs?'<div style="font-size:11px;color:#666;">'+a.obs+'</div>':''}</td><td style="color:#666;">${a.instit||'—'}</td><td class="num">${fmtBRL(a.valor)}</td><td class="num" style="color:#666;">${pctC}</td><td class="num" style="color:#666;">${pctT}</td><td style="text-align:right;"><button class="btn sm" style="margin-right:4px;" onclick="editAsset('${a.id}')">Ed.</button><button class="btn sm danger" onclick="deleteAsset('${a.id}')">×</button></td></tr>`;
+            }).join('')}
+            <tr class="total-row"><td colspan="2">Subtotal ${TIPO_LABELS_LOCAL[tipo]||tipo}</td><td class="num">${fmtBRL(subtotal)}</td><td class="num">100%</td><td class="num">${pctClasse}%</td><td></td></tr>
+          </tbody>
+        </table>
+      </div>`;
+  });
+  g('assetViewClasse').innerHTML=classeHTML;
+
+  // ── VIEW: Por instituição ────────────────────────────────────
+  const instits={};
+  ativos.forEach(a=>{const k=a.instit||'Sem instituição';if(!instits[k])instits[k]=[];instits[k].push(a);});
+  const institSorted=Object.entries(instits).sort((a,b)=>b[1].reduce((s,x)=>s+x.valor,0)-a[1].reduce((s,x)=>s+x.valor,0));
+  let institHTML='';
+  institSorted.forEach(([instit,lista])=>{
+    const subtotal=lista.reduce((s,a)=>s+Number(a.valor||0),0);
+    const pctInstit=total>0?((subtotal/total)*100).toFixed(1):0;
+    institHTML+=`
+      <div style="margin-bottom:1.25rem;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:14px;font-weight:500;">${instit}</span>
+            <span style="font-size:12px;color:#666;">${lista.length} ativo${lista.length!==1?'s':''}</span>
+          </div>
+          <div style="text-align:right;">
+            <span style="font-size:14px;font-weight:500;">${fmtBRL(subtotal)}</span>
+            <span style="font-size:12px;color:#666;margin-left:8px;">${pctInstit}% da carteira</span>
+          </div>
+        </div>
+        <div style="height:5px;background:var(--border);border-radius:3px;margin-bottom:8px;overflow:hidden;">
+          <div style="height:5px;border-radius:3px;background:#1D9E75;width:${pctInstit}%;"></div>
+        </div>
+        <table class="asset-table">
+          <thead><tr><th>Ativo</th><th>Tipo</th><th class="num">Valor (R$)</th><th class="num">% Inst.</th><th class="num">% Total</th><th></th></tr></thead>
+          <tbody>
+            ${lista.map(a=>{
+              const pctT=total>0?((Number(a.valor)/total)*100).toFixed(1)+'%':'—';
+              const pctI=subtotal>0?((Number(a.valor)/subtotal)*100).toFixed(1)+'%':'—';
+              return`<tr><td><div style="font-weight:500;">${a.nome}</div>${a.obs?'<div style="font-size:11px;color:#666;">'+a.obs+'</div>':''}</td><td><span class="tipo-badge tipo-${a.tipo||'Outro'}">${a.tipo||'Outro'}</span></td><td class="num">${fmtBRL(a.valor)}</td><td class="num" style="color:#666;">${pctI}</td><td class="num" style="color:#666;">${pctT}</td><td style="text-align:right;"><button class="btn sm" style="margin-right:4px;" onclick="editAsset('${a.id}')">Ed.</button><button class="btn sm danger" onclick="deleteAsset('${a.id}')">×</button></td></tr>`;
+            }).join('')}
+            <tr class="total-row"><td colspan="2">Subtotal ${instit}</td><td class="num">${fmtBRL(subtotal)}</td><td class="num">100%</td><td class="num">${pctInstit}%</td><td></td></tr>
+          </tbody>
+        </table>
+      </div>`;
+  });
+  g('assetViewInstit').innerHTML=institHTML;
+}
 function showAssetForm(){editingAssetId=null;g('assetFormTitle').textContent='Novo ativo';['aNome','aInstit','aObs'].forEach(id=>g(id).value='');g('aValor').value='';g('aTipo').value='RF';g('assetFormWrap').style.display='';}
 function editAsset(id){const c=clients.find(x=>x.id===currentId);const a=(c.ativos||[]).find(x=>x.id===id);if(!a)return;editingAssetId=id;g('assetFormTitle').textContent='Editar ativo';g('aNome').value=a.nome||'';g('aTipo').value=a.tipo||'RF';g('aValor').value=a.valor||'';g('aInstit').value=a.instit||'';g('aObs').value=a.obs||'';g('assetFormWrap').style.display='';}
 function cancelAssetForm(){editingAssetId=null;g('assetFormWrap').style.display='none';}
